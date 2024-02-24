@@ -103,7 +103,7 @@ def read_params():
         '--recursive-input',
         required=False,
         default=False,
-        dest='REC_INPUT',
+        # dest='REC_INPUT',
         action='store_true',
         help='Allow checking subdirectories of input directory for input files.')
 
