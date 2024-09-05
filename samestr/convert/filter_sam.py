@@ -2,9 +2,16 @@
 import re
 import sys
 
-# Filter SAM file by percent identity and length
+from contextlib import nullcontext
 
+from .buffered_reader import stream_file
+
+""" Filter SAM file by percent identity and length """
+
+
+COMPLEMENT_TRANSLATION = str.maketrans('ACGTacgtNn', 'TGCAtgcaNn')
 CIGAR_RE = re.compile(r'([a-zA-Z])')
+HARDCLIP_RE = re.compile(r'H')
 
 def decode_cigar(cigar):
     hbeg = 0
@@ -30,90 +37,103 @@ def decode_cigar(cigar):
 
 
 def reverse_complement(seq):
-    return seq.translate(str.maketrans('ACGTacgtNn', 'TGCAtgcaNn'))[::-1]
+    return seq.translate(COMPLEMENT_TRANSLATION)[::-1]
 
 def main():
-    # read command line arguments and/or stdin
-    if (len(sys.argv[1:]) == 2):
-        fhandle = sys.stdin.readlines()
-        pctid = float(sys.argv[1])
-        minlen = int(sys.argv[2])
-    else:
-        with open(sys.argv[1], 'r') as f:
-            fhandle = f.readlines()
-            pctid = float(sys.argv[2])
-            minlen = int(sys.argv[3])
-
     # initialize variables
     cquery = ''
     cseq = ''
     cqual = ''
     cstrand = ''
 
+    
 
-    # parse file
-    for line in fhandle:
+    # read command line arguments and/or stdin
+    if (len(sys.argv[1:]) == 2):
+        # fhandle = sys.stdin.readlines()
+        instream = sys.stdin
+        instream_context = nullcontext()
+        pctid = float(sys.argv[1])
+        minlen = int(sys.argv[2])
+    else:
+        # instream = instream_context = open(sys.argv[1], 'rt')
+        instream = instream_context = stream_file(sys.argv[1])
+        # fhandle = f.readlines()
+        pctid = float(sys.argv[2])
+        minlen = int(sys.argv[3])
 
-        # print header
-        if line.startswith('@'):
-            print(line.rstrip())
-            continue
+    id_threshold = pctid / 100.0
 
-        # get fields
-        sline = line.rstrip().split('\t')
-        query = sline[0]
-        code = bin(int(sline[1]))[2:].zfill(12)
-        strand = int(code[-5])
-        ref = sline[2]
-        cigar = sline[5]
-        cigar = re.sub('H','S',cigar)
-        sline[5] = cigar
-        seq = sline[9]
-        qual = sline[10]
+    with instream_context:
+        # parse file
+        for line in instream:
 
-        # skip empty hits
-        if ref == '*' or cigar == '*':
-            continue
+            # print header
+            if line[0] == "@":
+                print(line.rstrip())
+                continue
 
-        # make sure read is mapped
-        if int(code[-3]) == 1:
-            quit('ERROR 1: SAM file format')
+            # get fields
+            sline = line.rstrip().split('\t')
+            query = sline[0]
+            # code = bin(int(sline[1]))[2:].zfill(12)
+            flag = int(sline[1])
+            # strand = int(code[-5])
+            strand = flag & 0x10
+            ref = sline[2]
+            cigar = sline[5]
+            # cigar = HARDCLIP_RE.sub('S', cigar)
+            # sline[5] = cigar
+            seq = sline[9]
+            qual = sline[10]
 
-        # calculate edit distance, total length
-        hbeg, alen, hend, tlen = decode_cigar(cigar)
-        mismatch = int(re.search('[NX]M:i:(\d+)', line).group(1))
-        match = alen - mismatch
+            # skip empty hits
+            if ref == '*' or cigar == '*':
+                continue
 
-        # handle SAM asterisks
-        if seq == '*' and qual == '*':
-            # use last seq/qual
-            if cquery != query:
-                quit('ERROR 2: SAM file format')
-        else:
-            # update seq/qual
-            cquery = query
-            cseq = seq
-            cqual = qual
-            cstrand = strand
+            # make sure read is mapped
+            if flag & 0x4:
+                raise ValueError("Read is unmapped.")
+                # quit('ERROR 1: SAM file format')
 
-        # filter by percent identity
-        if 1.*match/tlen < 1.*pctid/100.:
-            continue
+            # calculate edit distance, total length
+            hbeg, alen, hend, tlen = decode_cigar(cigar)
+            mismatch = int(re.search('[NX]M:i:(\d+)', line).group(1))
+            match = alen - mismatch
 
-        # always set the seq/qual columns
-        if strand == cstrand:
-            sline[9] = cseq
-            sline[10] = cqual
-        else:
-            sline[9] = reverse_complement(cseq)
-            sline[10] = reverse_complement(cseq)
+            # handle SAM asterisks
+            if seq == '*' and qual == '*':
+                # use last seq/qual
+                if cquery != query:
+                    raise ValueError(f"{cquery=} != {query=} in secondary alignment.")
+                    # quit('ERROR 2: SAM file format')
+            else:
+                # update seq/qual
+                cquery = query
+                cseq = seq
+                cqual = qual
+                cstrand = strand
 
-        # ensure that the cigar matches the sequence
-        if tlen != (len(cseq) - hbeg - hend):
-            quit('ERROR 3: SAM file format')
+            # filter by percent identity / min length
+            if match / tlen < id_threshold or tlen < minlen:
+                continue
 
-        # finally, print quality filtered line
-        print('\t'.join(sline))
+            # always set the seq/qual columns
+            if strand == cstrand:
+                sline[9] = cseq
+                sline[10] = cqual
+            else:
+                sline[9] = reverse_complement(cseq)
+                sline[10] = cqual[::-1]
+
+            # ensure that the cigar matches the sequence
+            # if tlen != (len(cseq) - hbeg - hend):
+            if tlen != len(cseq):
+                raise ValueError(f"Calculated {tlen=} does not match sequence length {len(cseq)} (with {cigar=}).")
+                # quit('ERROR 3: SAM file format')
+
+            # finally, print quality filtered line
+            print('\t'.join(sline))
 
 
 if __name__ == "__main__":
