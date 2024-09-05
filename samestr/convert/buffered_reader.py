@@ -15,15 +15,14 @@ def determine_open_function(f):
     if is_gz_file(f):
         return gzip.open, "rt"
     if is_bz2_file(f):
-        return gzip.open, "rt"
+        return bz2.BZ2File, "rt"
     return open, "rt"
-    
 
 def get_lines_from_chunks(f, bufsize=800000000):
     open_f, mode = determine_open_function(f)
     with open_f(f, mode) as _in:    
         tail = ""
-        while True:
+        while 1:
             chunk = _in.read(bufsize)
             # if gzipped:
             #     chunk = chunk.decode()
