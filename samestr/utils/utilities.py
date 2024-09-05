@@ -1,12 +1,13 @@
+import gzip
+import json
 import os
 import re
 
 from datetime import datetime
-from os.path import basename, isdir, isfile
+from os.path import basename, isfile
+
 import numpy as np
 import pandas as pd
-import gzip
-import json
 
 
 def log_time(method):

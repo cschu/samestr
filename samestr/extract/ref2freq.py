@@ -10,23 +10,21 @@
     to output to compatible numpy format
 """
 
-import os
-from os import remove, makedirs
-from os.path import isdir
-from sys import exit
-
-import random
-from shutil import copyfile
-from glob import glob
-from re import sub
-
 import bz2
 import gzip
-from collections import defaultdict
-from tempfile import SpooledTemporaryFile, NamedTemporaryFile
-
+import os
+import pathlib
+import random
 import logging
 import logging.config
+
+from collections import defaultdict
+from glob import glob
+from os import remove
+from re import sub
+from shutil import copyfile
+from sys import exit
+from tempfile import SpooledTemporaryFile, NamedTemporaryFile
 
 import numpy as np
 
@@ -429,10 +427,8 @@ def seqs2freqs(args, seqs, marker_pos):
         freqs[reference] = np.expand_dims(freqs[reference], axis=0)
         seqs[reference] = np.expand_dims(seqs[reference], axis=0)
 
-    # makedirs
-    if not isdir(args['output_dir']):
-        makedirs(args['output_dir'])
-
+    pathlib.Path(args['output_dir']).mkdir(exist_ok=True, parents=True)
+    
     def _format_reference_name(name):
         # fasta, fna, fa, + gz
         if name.endswith(('.fa.gz', '.fasta.gz', '.fna.gz', '.fa.bz2',

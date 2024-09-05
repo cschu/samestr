@@ -1,13 +1,13 @@
 import os
-from os.path import exists
-from os import makedirs
-import logging
 import glob
+import logging
+
+import numpy as np
+import pandas as pd
 
 from samestr.summarize.read_taxonomic_profiles import get_clade_profile, get_taxon_counts, get_taxon_cooccurrences
 from samestr.summarize.read_samestr_data import read_samestr_data, analyze_strain_events
-import pandas as pd
-import numpy as np
+
 
 LOG = logging.getLogger(__name__)
 

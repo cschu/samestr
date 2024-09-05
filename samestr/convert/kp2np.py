@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import argparse
-import numpy as np
 import gzip
-from os.path import isdir, basename
-from os import makedirs
+import pathlib
+
+from os.path import basename
+
+import numpy as np
 
 # Input arguments
 # ---------------
@@ -71,8 +73,7 @@ for line in gzip.open(args.map, 'rt'):
     cmap[genome].append(contig)
 
 # Create dir if not exists
-if not isdir(args.output_dir):
-    makedirs(args.output_dir)
+pathlib.Path(args.output_dir).mkdir(exist_ok=True, parents=True)
 
 # Mapping stats
 cols = '\t'.join([

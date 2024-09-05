@@ -21,7 +21,7 @@ class ooSubprocess:
     def __init__(self, tmp_dir='tmp-ooSubprocess/'):
         self.chain_cmds = []
         self.tmp_dir = tmp_dir
-        makedirs(tmp_dir)
+        pathlib.Path(tmp_dir).mkdir(parents=True, exist_ok=True)
         self.current_process = None
 
     def ex(self,
@@ -186,16 +186,8 @@ def fdir(dir, ifn):
 
 
 def makedirs(dir):
-    if not os.path.exists(dir):
-        try:
-            os.makedirs(dir)
-        except OSError as e:
-            if e.errno != 17:
-                raise
-            pass
-    elif not os.path.isdir(dir):
-        raise ooSubprocessException(
-            'Error: {} is not a directory!'.format(dir))
+    raise DeprecationWarning("Use pathlib.Path().mkdir() instead.")
+    
 
 
 def replace_ext(ifn, old_ext, new_ext):
