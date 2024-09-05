@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
-import re, sys
+import re
+import sys
 
 # Filter SAM file by percent identity and length
 
+CIGAR_RE = re.compile(r'([a-zA-Z])')
+
 def decode_cigar(cigar):
-    res = []
     hbeg = 0
     alnlen = 0
     hend = 0
     tlen = 0
-    tabs = re.split('([a-zA-Z])', cigar)[:-1]
-    for i in range(len(tabs)//2):
-        ci = int(tabs[i*2])
-        li = tabs[i*2 + 1]
+    tabs = CIGAR_RE.split(cigar)[:-1]
+    it_tabs = iter(tabs)
+    for i, c in enumerate(it_tabs):
+        ci = int(c)
+        li = next(it_tabs)
         if li == 'H':
             if i == 0:
                 hbeg += ci
@@ -22,7 +25,8 @@ def decode_cigar(cigar):
             alnlen += ci
         if li != 'H' and li != 'D':
             tlen += ci
-    return [hbeg, alnlen, hend, tlen]
+
+    return hbeg, alnlen, hend, tlen
 
 
 def reverse_complement(seq):
@@ -76,7 +80,7 @@ for line in fhandle:
         quit('ERROR 1: SAM file format')
 
     # calculate edit distance, total length
-    [hbeg, alen, hend, tlen] = decode_cigar(cigar)
+    hbeg, alen, hend, tlen = decode_cigar(cigar)
     mismatch = int(re.search('[NX]M:i:(\d+)', line).group(1))
     match = alen - mismatch
 
