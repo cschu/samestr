@@ -57,7 +57,8 @@ def main():
         minlen = int(sys.argv[2])
     else:
         # instream = instream_context = open(sys.argv[1], 'rt')
-        instream = instream_context = stream_file(sys.argv[1])
+        instream = stream_file(sys.argv[1])
+        instream_context = nullcontext()
         # fhandle = f.readlines()
         pctid = float(sys.argv[2])
         minlen = int(sys.argv[3])
