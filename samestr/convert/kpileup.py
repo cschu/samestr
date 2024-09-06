@@ -8,6 +8,8 @@ import sys
 from collections import defaultdict
 from dataclasses import dataclass
 
+from samestr.convert.buffered_reader import stream_file
+
 
 CIGAR_RE = re.compile(r'(\d+)([MIDNSHP])')
 
@@ -84,26 +86,27 @@ def parse_gene(file):
         dict: a dictionary containing the gene name as key and the contig, start, end, strand, and sequence as values
     """
     # data = {}
-    with gzip.open(file, "rt") as f:
-        for line in f:
-            line = line.strip()
-            contig_id, gene_id, begin, end, strand, seq = line.split("\t")
-            # data[gene_id] = Gene(
-            yield Gene(
-                gene_id,
-                contig_id,
-                int(begin),
-                int(end),
-                strand,
-                seq,
-            )
-            # data[gene_id] = {
-            #     'contig': contig_id,
-            #     'begin': int(begin),
-            #     'end': int(end),
-            #     'strand': strand,
-            #     'seq': seq
-            # }
+    # with gzip.open(file, "rt") as f:
+    #     for line in f:
+    for line in stream_file(file):
+        line = line.strip()
+        contig_id, gene_id, begin, end, strand, seq = line.split("\t")
+        # data[gene_id] = Gene(
+        yield Gene(
+            gene_id,
+            contig_id,
+            int(begin),
+            int(end),
+            strand,
+            seq,
+        )
+        # data[gene_id] = {
+        #     'contig': contig_id,
+        #     'begin': int(begin),
+        #     'end': int(end),
+        #     'strand': strand,
+        #     'seq': seq
+        # }
     # return data
 
 
@@ -155,8 +158,9 @@ def decode_cigar(cigar):
         str: the decoded cigar string
     """
     cigar_parts = CIGAR_RE.findall(cigar)
-    new_string = ''.join(c * int(n) for n, c in cigar_parts)
-    return new_string
+    # new_string = ''.join(c * int(n) for n, c in cigar_parts)
+    # return new_string
+    return [c * int(n) for n, c in cigar_parts]
 
 
 def convert_qual(qual_string):

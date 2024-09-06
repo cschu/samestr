@@ -7,6 +7,8 @@ from os.path import basename
 
 import numpy as np
 
+from samestr.convert.buffered_reader import stream_file
+
 # Input arguments
 # ---------------
 
@@ -36,7 +38,8 @@ nts = 'ACGT'
 
 # Initialize numpy arrays for each contig
 x = {}
-for line in gzip.open(args.gene_file, 'rt'):
+# for line in gzip.open(args.gene_file, 'rt'):
+for line in stream_file(args.gene_file):
     line = line.rstrip().split()
     contig = line[0]
     # beg = int(line[2])
@@ -44,18 +47,19 @@ for line in gzip.open(args.gene_file, 'rt'):
     x[contig] = np.zeros([1, end, 4])
 
 # Add kpileup results to numpy arrays
-with open(args.kp, 'r') as f:
-    for line in f.readlines():
-        line = line.rstrip().split()
-        if len(line) == 10 and line[0] != 'Sample' and line[7] != 'N':
-            sample = line[0]
-            i = 0
-            contig = line[1]
-            j = int(line[2])
-            nt = line[7]
-            k = nts.index(nt)
-            count = int(line[8])
-            x[contig][i, j - 1, k] = count
+# with open(args.kp, 'r') as f:
+#     for line in f.readlines():
+for line in stream_file(args.kp):
+    line = line.rstrip().split()
+    if len(line) == 10 and line[0] != 'Sample' and line[7] != 'N':
+        sample = line[0]
+        i = 0
+        contig = line[1]
+        j = int(line[2])
+        nt = line[7]
+        k = nts.index(nt)
+        count = int(line[8])
+        x[contig][i, j - 1, k] = count
 
 # Sample list
 # M = [sample1]
@@ -64,7 +68,8 @@ with open(args.kp, 'r') as f:
 # Contig map
 # cmap[genome] = [contig1, contig2, ...]
 cmap = {}
-for line in gzip.open(args.map, 'rt'):
+# for line in gzip.open(args.map, 'rt'):
+for line in stream_file(args.map):
     line = line.strip().split()
     genome = line[0]
     contig = line[1]
