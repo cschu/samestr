@@ -20,12 +20,13 @@ def determine_open_function(f):
 
 def get_lines_from_chunks(f, bufsize=800000000):
     open_f, mode = determine_open_function(f)
+    binary_mode = "t" not in mode
     with open_f(f, mode) as _in:    
         tail = ""
         while 1:
             chunk = _in.read(bufsize)
-            # if gzipped:
-            #     chunk = chunk.decode()
+            if binary_mode:
+                chunk = chunk.decode()
             chunk = "".join((tail, chunk))            
             if not chunk:
                 break
