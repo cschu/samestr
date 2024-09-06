@@ -4,7 +4,7 @@ import sys
 
 from contextlib import nullcontext
 
-from .buffered_reader import stream_file
+from samestr.convert.buffered_reader import stream_file
 
 """ Filter SAM file by percent identity and length """
 
