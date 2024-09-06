@@ -140,7 +140,7 @@ def parse_bases(genes):
             if gene_data.strand == '-' and codon_pos != 2:
                 codon_pos = 1 if codon_pos == 0 else 0
             codon_pos = 3 if codon_pos == 0 else codon_pos
-            nuc[gene_data.contig][i] = f"{gene_data.gene_id}\t{base}\t{codon_pos}"
+            nuc[gene_data.contig_id][i] = f"{gene_data.gene_id}\t{base}\t{codon_pos}"
 
     return nuc
 
