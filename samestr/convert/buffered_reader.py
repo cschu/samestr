@@ -15,7 +15,7 @@ def determine_open_function(f):
     if is_gz_file(f):
         return gzip.open, "rt"
     if is_bz2_file(f):
-        return bz2.BZ2File, "rt"
+        return bz2.BZ2File, "r"
     return open, "rt"
 
 def get_lines_from_chunks(f, bufsize=800000000):
