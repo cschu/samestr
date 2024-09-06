@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-import subprocess
-import os
-import multiprocessing
-from multiprocessing.pool import ThreadPool
-import sys
-from tempfile import NamedTemporaryFile
-from . import which
 import functools
-import traceback
+import multiprocessing
 import logging
+import os
+import pathlib
+import subprocess
+import sys
+import traceback
+
+from multiprocessing.pool import ThreadPool
+from tempfile import NamedTemporaryFile
+
+from . import which
+
 
 LOG = logging.getLogger(__name__)
 
