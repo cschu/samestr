@@ -34,33 +34,58 @@ def freq2freqs(args):
     if isfile('%s.npz' % output_file):
         LOG.info('Skipping: %s. Output file existed.' % args['clade'])
         return True
+    
+    if len(args['input_files']) > 1:
+        LOG.info('Merging %s inputs: %s' %
+            (len(args['input_files']), args['clade']))
 
-    # iterate samples of clade
-    for sample, file_path in args['input_files']:
+    # iterate samples containing clade
+    for i, (sample, file_path) in enumerate(args['input_files']):
 
-        # initialize clade freqs arrays
+        multiple_samples = isinstance(sample, list)
+
+        sample_clade_freqs = load_numpy_file(file_path)
+
         if clade_freqs is None:
-            clade_freqs = load_numpy_file(file_path)
-            if isinstance(sample, list):
-                samples += sample
-            else:
-                samples.append(sample)
+            # final clade_freqs array will have dimensions (n_samples x clade_positions x 4)
+            clade_freqs = np.zeros((len(args['input_files']), sample_clade_freqs.shape[1], sample_clade_freqs.shape[2]))
+        else:
+            if sample_clade_freqs.shape[1:] != clade_freqs.shape[1:]:
+                LOG.error('Dimensions of arrays do not match: %s (%s|%s)' %
+                  (sample, sample_clade_freqs.shape[1], clade_freqs.shape[1]))
+                return False
 
-            # if more than one sample, continue samples loop
-            if len(args['input_files']) > 1:
-                LOG.info('Merging %s inputs: %s' %
-                         (len(args['input_files']), args['clade']))
-                continue
+        clade_freqs[i] = sample_clade_freqs
+
+        if multiple_samples:
+            samples += sample
+        else:
+            samples.append(sample)
+
+
+        # # initialize clade freqs arrays
+        # if clade_freqs is None:
+        #     clade_freqs = load_numpy_file(file_path)
+        #     if multiple_samples:
+        #         samples += sample
+        #     else:
+        #         samples.append(sample)
+
+        #     # if more than one sample, continue samples loop
+        #     if len(args['input_files']) > 1:
+        #         LOG.info('Merging %s inputs: %s' %
+        #                  (len(args['input_files']), args['clade']))
+        #         continue
 
         # if more than one sample, add sample freq to freqs
-        if len(args['input_files']) > 1:
-            clade_freqs, success = merge_freqs(
-                clade_freqs, load_numpy_file(file_path), sample)
-            if success:
-                if isinstance(sample, list):
-                    samples += sample
-                else:
-                    samples.append(sample)
+        # if len(args['input_files']) > 1:
+        #     clade_freqs, success = merge_freqs(
+        #         clade_freqs, load_numpy_file(file_path), sample)
+        #     if success:
+        #         if multiple_samples:
+        #             samples += sample
+        #         else:
+        #             samples.append(sample)
 
     # per clade, save freqs and names to file
     np.savez_compressed(output_file + '.npz', clade_freqs, allow_pickle=True)
