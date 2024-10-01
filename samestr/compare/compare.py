@@ -62,6 +62,28 @@ def compare(args):
         x = np.append(x, d, axis=0)
         samples += dom_samples
 
+    closest_out = open('%s/%s.closest.txt' % (args['output_dir'], args['clade']), 'w')
+    overlap_out = open('%s/%s.overlap.txt' % (args['output_dir'], args['clade']), 'w')
+    fraction_out = open('%s/%s.fraction.txt' % (args['output_dir'], args['clade']), 'w')
+
+    with closest_out, overlap_out, fraction_out:
+        print("Sample", *samples, sep="\t", file=closest_out)
+        print("Sample", *samples, sep="\t", file=overlap_out)
+        print("Sample", *samples, sep="\t", file=fraction_out)
+
+        for i, sample in enumerate(samples):
+            shortest_distance = (((x[i, :, :] > 0) *
+                                  (x > 0)).sum(axis=2) > 0).sum(axis=1)
+            shared_overlap = ((x[i, :, :].sum(axis=1) > 0) *
+                              (x.sum(axis=2) > 0)).sum(axis=1)
+            fraction_phenotype = np.nan_to_num(shortest_distance / shared_overlap)
+
+            print(sample, *shortest_distance, sep="\t", file=closest_out)
+            print(sample, *shared_overlap, sep="\t", file=overlap_out)
+            print(sample, *fraction_phenotype, sep="\t", file=fraction_out)
+
+
+
     # set matrix colnames
     columns = 'Sample\t' + '\t'.join(samples)
     shortest_distance_matrix = [columns]
