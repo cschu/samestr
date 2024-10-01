@@ -41,7 +41,7 @@ def freq2freqs(args):
 
     # iterate samples containing clade
     for i, (sample, file_path) in enumerate(args['input_files']):
-        LOG.debug('Merging sample %s', sample)
+        LOG.debug('Merging sample %s (%s/%s)...', sample, i, len(args['input_files']))
 
         multiple_samples = isinstance(sample, list)
 
@@ -61,32 +61,7 @@ def freq2freqs(args):
         if multiple_samples:
             samples += sample
         else:
-            samples.append(sample)
-
-
-        # # initialize clade freqs arrays
-        # if clade_freqs is None:
-        #     clade_freqs = load_numpy_file(file_path)
-        #     if multiple_samples:
-        #         samples += sample
-        #     else:
-        #         samples.append(sample)
-
-        #     # if more than one sample, continue samples loop
-        #     if len(args['input_files']) > 1:
-        #         LOG.info('Merging %s inputs: %s' %
-        #                  (len(args['input_files']), args['clade']))
-        #         continue
-
-        # if more than one sample, add sample freq to freqs
-        # if len(args['input_files']) > 1:
-        #     clade_freqs, success = merge_freqs(
-        #         clade_freqs, load_numpy_file(file_path), sample)
-        #     if success:
-        #         if multiple_samples:
-        #             samples += sample
-        #         else:
-        #             samples.append(sample)
+            samples.append(sample)        
 
     # per clade, save freqs and names to file
     np.savez_compressed(output_file + '.npz', clade_freqs, allow_pickle=True)
