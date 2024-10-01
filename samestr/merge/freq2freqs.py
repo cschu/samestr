@@ -41,7 +41,7 @@ def freq2freqs(args):
 
     # iterate samples containing clade
     for i, (sample, file_path) in enumerate(args['input_files']):
-        LOG.debug('Merging sample %s (%s/%s)...', sample, i, len(args['input_files']))
+        LOG.debug('Merging sample %s (%s/%s)...', sample, i + 1, len(args['input_files']))
 
         multiple_samples = isinstance(sample, list)
 
