@@ -18,25 +18,25 @@ def determine_open_function(f):
         return bz2.BZ2File, "rb"
     return open, "rt"
 
-def get_lines_from_chunks(f, bufsize=800000000):
-    open_f, mode = determine_open_function(f)
-    binary_mode = "t" not in mode
-    with open_f(f, mode) as _in:    
-        tail = ""
-        while 1:
-            chunk = _in.read(bufsize)
-            if binary_mode:
-                chunk = chunk.decode()
-            chunk = "".join((tail, chunk))            
-            if not chunk:
-                break
-            chunk = chunk.split("\n")
-            *chunk, tail = chunk
-            for line in chunk:
-                yield line
-        if tail:
-            yield tail
+def get_lines_from_chunks(stream, bufsize=800000000, binary_mode=True):
+    tail = ""
+    while 1:
+        chunk = stream.read(bufsize)
+        if binary_mode:
+            chunk = chunk.decode()
+        chunk = "".join((tail, chunk))            
+        if not chunk:
+            break
+        chunk = chunk.split("\n")
+        *chunk, tail = chunk
+        for line in chunk:
+            yield line
+    if tail:
+        yield tail
             
 def stream_file(f):
-    yield from get_lines_from_chunks(f)
+    open_f, mode = determine_open_function(f)
+    binary_mode = "t" not in mode
+    with open_f(f, mode) as _in:
+        yield from get_lines_from_chunks(_in, binary_mode=binary_mode)
 
