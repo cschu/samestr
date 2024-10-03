@@ -44,9 +44,7 @@ def main():
     cquery = ''
     cseq = ''
     cqual = ''
-    cstrand = ''
-
-    
+    cstrand = ''    
 
     # read command line arguments and/or stdin
     if (len(sys.argv[1:]) == 2):
