@@ -5,7 +5,7 @@ import re
 import subprocess
 import sys
 
-from collections import defaultdict
+from collections import defaultdict, Counter
 from dataclasses import dataclass
 
 from samestr.convert.buffered_reader import stream_file
@@ -120,7 +120,8 @@ def parse_bases(genes):
     Returns:
         dict: a dictionary indexed by contigs and containing the gene name, reference nucleotide, and codon position as values
     """
-    nuc = defaultdict(dict)
+    # nuc = defaultdict(dict)
+    nuc = {}
     # for g, gene_data in genes.items():
     for gene_data in genes:
         # begin = gene_data['begin']
@@ -143,7 +144,8 @@ def parse_bases(genes):
             if gene_data.strand == '-' and codon_pos != 2:
                 codon_pos = 1 if codon_pos == 0 else 0
             codon_pos = 3 if codon_pos == 0 else codon_pos
-            nuc[gene_data.contig_id][i] = f"{gene_data.gene_id}\t{base}\t{codon_pos}"
+            # nuc[gene_data.contig_id][i] = f"{gene_data.gene_id}\t{base}\t{codon_pos}"
+            nuc.setdefault(gene_data.contig_id, dict)[i] = (gene_data.gene_id, base, codon_pos)
 
     return nuc
 
@@ -161,7 +163,7 @@ def decode_cigar(cigar):
     # new_string = ''.join(c * int(n) for n, c in cigar_parts)
     # return new_string
     # return [c * int(n) for n, c in cigar_parts]
-    return [cc for op in (c * int(n) for n, c in cigar_parts) for cc in op]
+    return (cc for op in (c * int(n) for n, c in cigar_parts) for cc in op)
 
 
 def convert_qual(qual_string):
@@ -174,8 +176,9 @@ def convert_qual(qual_string):
     Returns:
         list: a list of quality scores
     """
-    scores = [ord(q) - 33 for q in qual_string]
-    return scores
+    # scores = [ord(q) - 33 for q in qual_string]
+    # return scores
+    return (ord(q) - 33 for q in qual_string)
 
 
 def pileup(sample_id, bam_file, gene_file, min_bq, min_mq, min_depth):
@@ -196,37 +199,45 @@ def pileup(sample_id, bam_file, gene_file, min_bq, min_mq, min_depth):
     genes = parse_gene(gene_file)
     bases = parse_bases(genes)
 
-    f_table = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
+    # f_table = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
+    f_table = {}
 
     with subprocess.Popen(["samtools", "view", bam_file], stdout=subprocess.PIPE, universal_newlines=True) as bam_process:
         for line in bam_process.stdout:
-            qname, flag, rname, begin, mapq, cigar, mrnm, mpos, isize, seq, qual, *info = line.strip().split('\t')
+            # qname, flag, rname, begin, mapq, cigar, mrnm, mpos, isize, seq, qual, *info = line.strip().split('\t')
+            # if rname == "*" or int(mapq) < min_mq or rname not in bases:
+            #     continue
+            _, _, rname, begin, mapq, cigar, _, _, _, seq, qual, *_ = line.strip().split("\t")
 
-            if rname == "*" or int(mapq) < min_mq or rname not in bases:
+            if int(mapq) < min_mq:
+                continue
+            
+            contig_bases = bases.get(rname)
+
+            if not contig_bases:
                 continue
 
             begin = int(begin)
-            end = begin + len(seq) - 1
-            qual_scores = convert_qual(qual)
+            # end = begin + len(seq) - 1
+            qual_scores = iter(convert_qual(qual))
 
-            s = decode_cigar(cigar)
-            # b = list(seq)
-            # ci = list(s)
-            b = iter(seq)
-            qual_scores = iter(qual_scores)
-            ci = s
+            aln_string = decode_cigar(cigar)
+            seq_bases = iter(seq)
+            # qual_scores = iter(qual_scores)
+            # ci = s
 
-            new = []
-            read_i = 0
+            # new = []
+            # read_i = 0
 
-            for cigar_op in ci:
+            for i, cigar_op in enumerate(aln_string, start=begin):
+                is_position_of_interest = contig_bases.get(i)
                 if cigar_op == "H":
                     continue
                 elif cigar_op == "D":
                     base = "-"
                 else:
                     # read_i += 1
-                    cur_base, cur_qual = next(b), next(qual_scores)
+                    cur_base, cur_qual = next(seq_bases), next(qual_scores)
                     if cigar_op in ("I", "S"):
                         continue
                     # if qual_scores[read_i] < min_bq:
@@ -234,7 +245,15 @@ def pileup(sample_id, bam_file, gene_file, min_bq, min_mq, min_depth):
                         base = "-"
                     else:
                         base = cur_base
-                new.append(base)
+                # new.append(base)
+
+                if base != "-" and is_position_of_interest is not None:
+                    f_table.setdefault(rname, dict).setdefault(i, Counter)[base] += 1
+
+
+            # for i, nuc in enumerate(new, start=begin):
+            #     if nuc != "-" and bases[rname].get(i):
+            #         f_table[rname][i][nuc] += 1
             # for cigar_i in range(len(ci)):
             #     base = "-"
             #     if ci[cigar_i] == "D":
@@ -261,9 +280,9 @@ def pileup(sample_id, bam_file, gene_file, min_bq, min_mq, min_depth):
             #         if nuc != "-":
             #             f_table[rname][i][nuc] += 1
 
-            for i, nuc in enumerate(new, start=begin):
-                if nuc != "-" and bases[rname].get(i):
-                    f_table[rname][i][nuc] += 1
+            # for i, nuc in enumerate(new, start=begin):
+            #     if nuc != "-" and bases[rname].get(i):
+            #         f_table[rname][i][nuc] += 1
 
     for c in f_table:
         print(f"{c}===")
@@ -278,23 +297,26 @@ def pileup(sample_id, bam_file, gene_file, min_bq, min_mq, min_depth):
             # for nuc in sorted(f_table[c][pos]):
             for nuc, counts in sorted(nucs.items(), key=lambda x:x[0]):
                 # counts = f_table[c][pos][nuc]
-                if counts < min_depth:
-                    continue
-                total += counts
-                if major == "":
-                    major = nuc
-                # elif f_table[c][pos][major] < counts:
-                elif nucs[major] < counts:
-                    major = nuc
+                # if counts < min_depth:
+                #     continue
+                if counts >= min_depth:
+                    total += counts
+                    if not major or nucs[major] < counts:
+                        major = nuc
+                    # elif f_table[c][pos][major] < counts:
+                    # elif nucs[major] < counts:
+                    #     major = nuc
 
             # for nuc in sorted(f_table[c][pos]):
             for nuc, counts in sorted(nucs.items(), key=lambda x:x[0]):
                 # counts = f_table[c][pos][nuc]
-                if counts < min_depth:
-                    continue
-                percent = 100 * counts / total
+                # if counts < min_depth:
+                #     continue
+                if counts >= min_depth:
+                    percent = 100 * counts / total
 
-                print(f"{sample_id}\t{c}\t{pos}\t{bases[c][pos]}\t{major}\t{nuc}\t{counts}\t{percent:.0f}")
+                # print(f"{sample_id}\t{c}\t{pos}\t{bases[c][pos]}\t{major}\t{nuc}\t{counts}\t{percent:.0f}")
+                print(sample_id, c, pos, *bases[c][pos], major, nuc, counts, f"{percent:.0f}", sep="\t")
 
 
 def main():
