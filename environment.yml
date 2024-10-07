@@ -13,3 +13,4 @@ dependencies:
   - mafft=7.515
   - samtools=0.1.19
   - mamba<1.5.9
+  

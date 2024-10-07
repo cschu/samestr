@@ -4,8 +4,8 @@
 
 from sys import stderr, argv
 import os
-from os.path import basename, dirname, realpath, isdir, isfile
-from os import environ, makedirs
+from os.path import basename, dirname, realpath, isfile
+from os import environ
 from datetime import datetime
 import logging
 import logging.config
@@ -100,10 +100,9 @@ def samestr(input_args):
             if t_found == db_manifest['records']['total_n_files']:
                 LOG.info('Number of files in the SameStr database matches the manifest.')
             if len(t_missing) > 0:
-                outfn =os.path.join(input_args['output_dir'], 'db_check.tsv')
+                outfn = os.path.join(input_args['output_dir'], 'db_check.tsv')
                 LOG.warning('Files missing from the SameStr database: %s. Saving to %s' % (len(t_missing), outfn))
-                if not isdir(input_args['output_dir']):
-                    makedirs(input_args['output_dir'])
+                pathlib.Path(input_args['output_dir']).mkdir(exist_ok=True, parents=True)
                 with open(outfn, 'w') as f:
                     txt = '\n'.join(t_missing)
                     f.write(txt)
@@ -136,8 +135,7 @@ def samestr(input_args):
         LOG.debug('Number of input files: %s', file_count)
 
     ## check make output dir
-    if not isdir(input_args['output_dir']):
-        pathlib.Path(input_args['output_dir']).mkdir(exist_ok=True, parents=True)
+    pathlib.Path(input_args['output_dir']).mkdir(exist_ok=True, parents=True)
 
     input_clade = input_args.get("species")
 
@@ -145,9 +143,8 @@ def samestr(input_args):
     ## process individual commands
     if input_args['command'] == 'db':
         
-        outdir =os.path.join(input_args['output_dir'], 'db_markers', '')
-        if not isdir(outdir):
-            makedirs(outdir)
+        outdir = os.path.join(input_args['output_dir'], 'db_markers', '')
+        pathlib.Path(outdir).mkdir(exist_ok=True, parents=True)        
 
         # expand and generate db from markers/info files
         generate_db(input_args)

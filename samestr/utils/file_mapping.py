@@ -1,9 +1,11 @@
+import logging
 import os
+import pathlib
+
 from os.path import dirname, abspath, exists
-from samestr.utils import ooSubprocess
+
 from samestr.utils.utilities import list_str_all_endswith
 
-import logging
 LOG = logging.getLogger(__name__)
 
 
@@ -14,10 +16,10 @@ def set_output_structure(args):
     """
 
     # dest
-    out_dir =os.path.join(abspath(args[0]['output_dir']), '')
+    out_dir = os.path.join(abspath(args[0]['output_dir']), '')
     cmd = args[0]['command']
 
-    ooSubprocess.makedirs(out_dir)
+    pathlib.Path(out_dir).mkdir(exist_ok=True, parents=True)
 
     if cmd == 'convert':
 
@@ -59,7 +61,7 @@ def set_output_structure(args):
             arg['np'] = sample_dir
 
             # make sample dirs
-            ooSubprocess.makedirs(sample_dir)
+            pathlib.Path(sample_dir).mkdir(exist_ok=True, parents=True)
 
     return args
 

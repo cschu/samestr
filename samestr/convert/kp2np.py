@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 import argparse
-import numpy as np
 import gzip
-from os.path import isdir, basename
-from os import makedirs
+import pathlib
+
+from os.path import basename
+
+import numpy as np
+
+from samestr.convert.buffered_reader import stream_file
 
 # Input arguments
 # ---------------
@@ -30,49 +34,52 @@ args = parser.parse_args()
 
 # Initialize data
 nts = 'ACGT'
-M = 1
+# M = 1
 
 # Initialize numpy arrays for each contig
 x = {}
-for line in gzip.open(args.gene_file, 'rt'):
+# for line in gzip.open(args.gene_file, 'rt'):
+for line in stream_file(args.gene_file):
     line = line.rstrip().split()
     contig = line[0]
-    beg = int(line[2])
+    # beg = int(line[2])
     end = int(line[3])
-    x[contig] = np.zeros([M, end, 4])
+    x[contig] = np.zeros([1, end, 4])
 
 # Add kpileup results to numpy arrays
-with open(args.kp, 'r') as f:
-    for line in f.readlines():
-        line = line.rstrip().split()
-        if len(line) == 10 and line[0] != 'Sample' and line[7] != 'N':
-            sample = line[0]
-            i = 0
-            contig = line[1]
-            j = int(line[2])
-            nt = line[7]
-            k = nts.index(nt)
-            count = int(line[8])
-            x[contig][i, j - 1, k] = count
+# with open(args.kp, 'r') as f:
+#     for line in f.readlines():
+for line in stream_file(args.kp):
+    line = line.rstrip().split()
+    if len(line) == 10 and line[0] != 'Sample' and line[7] != 'N':
+        sample = line[0]
+        i = 0
+        contig = line[1]
+        j = int(line[2])
+        nt = line[7]
+        k = nts.index(nt)
+        count = int(line[8])
+        x[contig][i, j - 1, k] = count
 
 # Sample list
 # M = [sample1]
-M = np.array([args.sample])
+# M = np.array([args.sample])
 
 # Contig map
 # cmap[genome] = [contig1, contig2, ...]
 cmap = {}
-for line in gzip.open(args.map, 'rt'):
+# for line in gzip.open(args.map, 'rt'):
+for line in stream_file(args.map):
     line = line.strip().split()
     genome = line[0]
     contig = line[1]
-    if genome not in cmap:
-        cmap[genome] = []
-    cmap[genome].append(contig)
+    cmap.setdefault(genome, []).append(contig)
+    # if genome not in cmap:
+    #     cmap[genome] = []
+    # cmap[genome].append(contig)
 
 # Create dir if not exists
-if not isdir(args.output_dir):
-    makedirs(args.output_dir)
+pathlib.Path(args.output_dir).mkdir(exist_ok=True, parents=True)
 
 # Mapping stats
 cols = '\t'.join([
@@ -85,11 +92,13 @@ stats = [cols]
 # Concatenate contigs
 # -------------------
 y = {}
-for genome in cmap:
-    contigs = cmap[genome]
+# for genome in cmap:
+for genome, contigs in cmap.items():
+    # contigs = cmap[genome]
 
     # Initialize array
-    m = len(M)
+    # m = len(M)
+    m = 1
     n = sum([np.shape(x[c])[1] for c in contigs])
     k = 4
     y[genome] = np.zeros([m, n, k])
@@ -123,7 +132,8 @@ for genome in cmap:
 
     # fraction of covered sites,
     # fraction of covered sites with variant, monomorphic, .., polymorphic
-    if not n_covered == 0:
+    # if not n_covered == 0:
+    if n_covered != 0:
         f_covered = round(n_covered / n_sites, 4)
         f_mono = round(n_mono / n_covered, 4)
         f_duo = round(n_duo / n_covered, 4)
@@ -147,7 +157,8 @@ for genome in cmap:
     stats.append('\t'.join(stat))
 
     # only write to numpy file if there is coverage left after convert criteria
-    if not n_covered == 0:
+    # if not n_covered == 0:
+    if n_covered != 0:
         np.savez_compressed(np_filepath, y[genome], allow_pickle=True)
 
 

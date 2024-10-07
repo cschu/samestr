@@ -1,11 +1,12 @@
 import bz2
 import gzip
 import pickle as pickle
-from Bio import SeqIO
-from os.path import isdir, isfile
-from os import makedirs
-import pandas as pd
 import re
+
+from os.path import isfile
+
+from Bio import SeqIO
+import pandas as pd
 
 from samestr.utils import clade_path, write_json, write_tsv
 
@@ -194,8 +195,7 @@ def generate_db(input_args):
         output_dir = input_args['output_dir'] + '/' + clade_path(clade)
 
         # Create dir if not exists
-        if not isdir(output_dir):
-            makedirs(output_dir)
+        pathlib.Path(output_dir).mkdir(exist_ok=True, parents=True)
 
         output_base = output_dir + clade
         marker_filename = output_base + '.markers.fa.gz'
