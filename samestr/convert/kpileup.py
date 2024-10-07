@@ -315,8 +315,8 @@ def pileup(sample_id, bam_file, gene_file, min_bq, min_mq, min_depth):
                 if counts >= min_depth:
                     percent = 100 * counts / total
 
-                # print(f"{sample_id}\t{c}\t{pos}\t{bases[c][pos]}\t{major}\t{nuc}\t{counts}\t{percent:.0f}")
-                print(sample_id, c, pos, *bases[c][pos], major, nuc, counts, f"{percent:.0f}", sep="\t")
+                    # print(f"{sample_id}\t{c}\t{pos}\t{bases[c][pos]}\t{major}\t{nuc}\t{counts}\t{percent:.0f}")
+                    print(sample_id, c, pos, *bases[c][pos], major, nuc, counts, f"{percent:.0f}", sep="\t")
 
 
 def main():
