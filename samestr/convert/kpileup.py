@@ -228,9 +228,9 @@ def pileup(sample_id, bam_file, gene_file, min_bq, min_mq, min_depth):
 
             # new = []
             # read_i = 0
+            p = begin
 
             for i, cigar_op in enumerate(aln_string, start=begin):
-                is_position_of_interest = contig_bases.get(i)
                 if cigar_op == "H":
                     continue
                 elif cigar_op == "D":
@@ -246,6 +246,8 @@ def pileup(sample_id, bam_file, gene_file, min_bq, min_mq, min_depth):
                     else:
                         base = cur_base
                 # new.append(base)
+                p += 1
+                is_position_of_interest = contig_bases.get(p)
 
                 if base != "-" and is_position_of_interest is not None:
                     f_table.setdefault(rname, {}).setdefault(i, Counter())[base] += 1
