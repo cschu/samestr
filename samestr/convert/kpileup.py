@@ -160,7 +160,8 @@ def decode_cigar(cigar):
     cigar_parts = CIGAR_RE.findall(cigar)
     # new_string = ''.join(c * int(n) for n, c in cigar_parts)
     # return new_string
-    return [c * int(n) for n, c in cigar_parts]
+    # return [c * int(n) for n, c in cigar_parts]
+    return [cc for op in (c * int(n) for n, c in cigar_parts) for cc in op]
 
 
 def convert_qual(qual_string):
