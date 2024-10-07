@@ -250,7 +250,7 @@ def pileup(sample_id, bam_file, gene_file, min_bq, min_mq, min_depth):
                 is_position_of_interest = contig_bases.get(p)
 
                 if base != "-" and is_position_of_interest is not None:
-                    f_table.setdefault(rname, {}).setdefault(i, Counter())[base] += 1
+                    f_table.setdefault(rname, {}).setdefault(p, Counter())[base] += 1
 
 
             # for i, nuc in enumerate(new, start=begin):
