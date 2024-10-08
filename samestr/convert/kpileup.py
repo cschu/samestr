@@ -199,8 +199,8 @@ def pileup(sample_id, bam_file, gene_file, min_bq, min_mq, min_depth):
     genes = parse_gene(gene_file)
     bases = parse_bases(genes)
 
-    # f_table = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
-    f_table = {}
+    f_table = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
+    # f_table = {}
     cur_rname = None
 
     contig_bases = None
@@ -215,7 +215,7 @@ def pileup(sample_id, bam_file, gene_file, min_bq, min_mq, min_depth):
                 continue
 
             if rname != cur_rname:
-                f_table.setdefault(rname, {})
+                # f_table.setdefault(rname, {})
                 cur_rname = rname            
                 contig_bases = bases.get(rname)
 
@@ -259,7 +259,8 @@ def pileup(sample_id, bam_file, gene_file, min_bq, min_mq, min_depth):
 
                 if base != "-" and is_position_of_interest is not None:
                     # f_table.setdefault(rname, {}).setdefault(p, Counter())[base] += 1
-                    f_table[rname].setdefault(p, Counter())[base] += 1
+                    # f_table[rname].setdefault(p, Counter())[base] += 1
+                    f_table[rname][p][base] += 1
                 
                 p += 1
 
