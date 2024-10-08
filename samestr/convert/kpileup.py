@@ -201,7 +201,9 @@ def pileup(sample_id, bam_file, gene_file, min_bq, min_mq, min_depth):
 
     # f_table = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
     f_table = {}
+    cur_rname = None
 
+    contig_bases = None
     with subprocess.Popen(["samtools", "view", bam_file], stdout=subprocess.PIPE, universal_newlines=True) as bam_process:
         for line in bam_process.stdout:
             # qname, flag, rname, begin, mapq, cigar, mrnm, mpos, isize, seq, qual, *info = line.strip().split('\t')
@@ -211,45 +213,53 @@ def pileup(sample_id, bam_file, gene_file, min_bq, min_mq, min_depth):
 
             if int(mapq) < min_mq:
                 continue
-            
-            contig_bases = bases.get(rname)
+
+            if rname != cur_rname:
+                f_table.setdefault(rname, {})
+                cur_rname = rname            
+                contig_bases = bases.get(rname)
 
             if not contig_bases:
                 continue
 
-            begin = int(begin)
+            # begin = int(begin)
+            p = int(begin)
             # end = begin + len(seq) - 1
-            qual_scores = iter(convert_qual(qual))
 
             aln_string = decode_cigar(cigar)
-            seq_bases = iter(seq)
+            # seq_bases = iter(seq)
+            # qual_scores = iter(convert_qual(qual))
+
+            bases_and_quals = iter(zip(seq, convert_qual(qual)))
             # qual_scores = iter(qual_scores)
             # ci = s
 
             # new = []
             # read_i = 0
-            p = begin
 
-            for i, cigar_op in enumerate(aln_string, start=begin):
+            for cigar_op in aln_string:
                 if cigar_op == "H":
                     continue
                 elif cigar_op == "D":
                     base = "-"
                 else:
                     # read_i += 1
-                    cur_base, cur_qual = next(seq_bases), next(qual_scores)
+                    # cur_base, cur_qual = next(seq_bases), next(qual_scores)
+                    cur_base, cur_qual = next(bases_and_quals)
                     if cigar_op in ("I", "S"):
                         continue
                     # if qual_scores[read_i] < min_bq:
-                    if cur_qual < min_bq:
-                        base = "-"
-                    else:
-                        base = cur_base
+                    base = (cur_base, "-")[(cur_qual < min_bq)]
+                    # if cur_qual < min_bq:
+                    #     base = "-"
+                    # else:
+                    #     base = cur_base
                 # new.append(base)
                 is_position_of_interest = contig_bases.get(p)
 
                 if base != "-" and is_position_of_interest is not None:
-                    f_table.setdefault(rname, {}).setdefault(p, Counter())[base] += 1
+                    # f_table.setdefault(rname, {}).setdefault(p, Counter())[base] += 1
+                    f_table[rname].setdefault(p, Counter())[base] += 1
                 
                 p += 1
 
