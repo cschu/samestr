@@ -13,59 +13,6 @@ from samestr.convert.buffered_reader import stream_file
 
 CIGAR_RE = re.compile(r'(\d+)([MIDNSHP])')
 
-
-parser = argparse.ArgumentParser(
-    description='This script is for parsing the BAM file and look for reads overlapping with the target genes and report the pileup.')
-parser.add_argument('sample_id', help='sample ID')
-parser.add_argument('bam_file', help='an aligned bam file')
-parser.add_argument(
-    'gene_file', help='a tab-delimited file of six columns in this order: contigId, geneId, begin, end, strand, DNA transcript seq. (Note: begin<end)')
-parser.add_argument('min_bq', type=int,
-                    help='the minimum base quality score of a sequenced base')
-parser.add_argument('min_mq', type=int,
-                    help='the minimum MQ mapping score of the aligned reads')
-parser.add_argument('min_d', type=int, help='the minimum depth, an integer.')
-args = parser.parse_args()
-
-usage = f"""{sys.argv[0]} <sampleId> <bam file> <gene file> <minimum BQ> <minimum MQ> <minimum D> <maximum D>
-
-{args.sample_id}: sample ID
-{args.bam_file}: an aligned bam file
-{args.gene_file}: a tab-delimited file of six columns in this order: contigId, geneId, begin, end, strand, DNA transcript seq. (Note: begin<end)
-{args.min_bq}: the minimum base quality score of a sequenced base
-{args.min_mq}: the minimum MQ mapping score of the aligned reads
-{args.min_d}: the minimum depth, an integer.
-
-This script is for parsing the BAM file and look for reads overlapping with the target genes and report the pileup.
-Reads must pass the minimum MQ threshold.
-For each position, an allele must have a depth >= <minimum D>.
-The frequency of each allele is calculated after the filterings.
-
-Note: the quality score must be Sanger Phred score (ascii 33).
-
-Dependencies:
-Use Samtools
-
-CIGAR parser: the embedded cigar parser is not versatile, please review it to make sure that it is handling the cigar code appropriately.
-
-
-The script generates a tab-delimited table directly to STDOUT.
-Each row is a base of the queried genes.
-A base could be reported repeatedly up to four times as four rows when polymorphisms are observed: A,T, G or C.
-The columns are:
-sample ID
-contig ID
-This Base Position
-Gene ID
-Ref allele of this Base
-Condon Position (if coding gene)
-Observed Consensus Allele of this Base (in this BAM)
-Observed Allele
-Coverage Depth of the Observed Allele
-Allele Frequency of the Observed Allele
-
-"""
-
 @dataclass
 class Gene:
     gene_id: str = None
@@ -182,7 +129,7 @@ def convert_qual(qual_string):
     return (ord(q) - 33 for q in qual_string)
 
 
-def pileup(sample_id, bam_file, gene_file, min_bq, min_mq, min_depth):
+def pileup(sample_id, bam_file, gene_file, min_bq, min_mq, min_depth, outstream=None):
     """
     Parse the BAM file and look for reads overlapping with the target genes and report the pileup
 
@@ -299,9 +246,10 @@ def pileup(sample_id, bam_file, gene_file, min_bq, min_mq, min_depth):
             #     if nuc != "-" and bases[rname].get(i):
             #         f_table[rname][i][nuc] += 1
 
-    for c in f_table:
-        print(f"{c}===")
-    print("Sample\tContig\tPosition\tGene\tRef\tCodon\tConsensus\tAllele\tCounts\tFrequency")
+    if outstream is not None:
+        for c in f_table:
+            print(f"{c}===", file=outstream)
+        print("Sample\tContig\tPosition\tGene\tRef\tCodon\tConsensus\tAllele\tCounts\tFrequency", file=outstream)
 
     for c, positions in f_table.items():
         # for pos in sorted(f_table[c]):
@@ -331,17 +279,73 @@ def pileup(sample_id, bam_file, gene_file, min_bq, min_mq, min_depth):
                     percent = 100 * counts / total
 
                     # print(f"{sample_id}\t{c}\t{pos}\t{bases[c][pos]}\t{major}\t{nuc}\t{counts}\t{percent:.0f}")
-                    print(sample_id, c, pos, *bases[c][pos], major, nuc, counts, f"{percent:.0f}", sep="\t")
-
+                    if outstream is not None:
+                        print(sample_id, c, pos, *bases[c][pos], major, nuc, counts, f"{percent:.0f}", sep="\t", file=outstream)
+                    yield sample_id, c, pos, *bases[c][pos], major, nuc, counts, f"{percent:.0f}"
 
 def main():
 
-    pileup(args.sample_id, 
-           args.bam_file, 
-           args.gene_file, 
-           args.min_bq, 
-           args.min_mq, 
-           args.min_d)
+    parser = argparse.ArgumentParser(
+    description='This script is for parsing the BAM file and look for reads overlapping with the target genes and report the pileup.')
+    parser.add_argument('sample_id', help='sample ID')
+    parser.add_argument('bam_file', help='an aligned bam file')
+    parser.add_argument(
+        'gene_file', help='a tab-delimited file of six columns in this order: contigId, geneId, begin, end, strand, DNA transcript seq. (Note: begin<end)')
+    parser.add_argument('min_bq', type=int,
+                        help='the minimum base quality score of a sequenced base')
+    parser.add_argument('min_mq', type=int,
+                        help='the minimum MQ mapping score of the aligned reads')
+    parser.add_argument('min_d', type=int, help='the minimum depth, an integer.')
+    args = parser.parse_args()
+
+    usage = f"""{sys.argv[0]} <sampleId> <bam file> <gene file> <minimum BQ> <minimum MQ> <minimum D> <maximum D>
+
+    {args.sample_id}: sample ID
+    {args.bam_file}: an aligned bam file
+    {args.gene_file}: a tab-delimited file of six columns in this order: contigId, geneId, begin, end, strand, DNA transcript seq. (Note: begin<end)
+    {args.min_bq}: the minimum base quality score of a sequenced base
+    {args.min_mq}: the minimum MQ mapping score of the aligned reads
+    {args.min_d}: the minimum depth, an integer.
+
+    This script is for parsing the BAM file and look for reads overlapping with the target genes and report the pileup.
+    Reads must pass the minimum MQ threshold.
+    For each position, an allele must have a depth >= <minimum D>.
+    The frequency of each allele is calculated after the filterings.
+
+    Note: the quality score must be Sanger Phred score (ascii 33).
+
+    Dependencies:
+    Use Samtools
+
+    CIGAR parser: the embedded cigar parser is not versatile, please review it to make sure that it is handling the cigar code appropriately.
+
+
+    The script generates a tab-delimited table directly to STDOUT.
+    Each row is a base of the queried genes.
+    A base could be reported repeatedly up to four times as four rows when polymorphisms are observed: A,T, G or C.
+    The columns are:
+    sample ID
+    contig ID
+    This Base Position
+    Gene ID
+    Ref allele of this Base
+    Condon Position (if coding gene)
+    Observed Consensus Allele of this Base (in this BAM)
+    Observed Allele
+    Coverage Depth of the Observed Allele
+    Allele Frequency of the Observed Allele
+
+    """
+
+    for position in pileup(
+        args.sample_id, 
+        args.bam_file, 
+        args.gene_file, 
+        args.min_bq, 
+        args.min_mq, 
+        args.min_d
+    ):
+        print(*position, sep="\t")
 
 if __name__ == "__main__":
     main()
