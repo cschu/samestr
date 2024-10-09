@@ -101,13 +101,17 @@ def kp2np(kpileups, contig_map, sample, gene_file, output_dir):
 
     # Concatenate contigs
     # -------------------
-    y = {}
+    m, k = 1, 4
+    y = {
+        genome: np.zeros([m, sum(np.shape(x[c])[1] for c in contigs), k])
+        for genome, contigs in cmap.items()
+    }
     # for genome in cmap:
     for genome, contigs in cmap.items():
-        m = 1
-        n = sum([np.shape(x[c])[1] for c in contigs])
-        k = 4
-        y[genome] = np.zeros([m, n, k])
+        # m = 1
+        # n = sum(np.shape(x[c])[1] for c in contigs)
+        # k = 4
+        # y[genome] = np.zeros([m, n, k])
 
         # Add alignment data
         beg = 0
