@@ -3,6 +3,7 @@ import argparse
 import os
 import pathlib
 
+from collections import Counter
 from os.path import basename
 
 import numpy as np
@@ -102,16 +103,17 @@ def kp2np(kpileups, contig_map, sample, gene_file, output_dir):
     # Concatenate contigs
     # -------------------
     m, k = 1, 4
-    y = {
-        genome: np.zeros([m, sum(np.shape(x[c])[1] for c in contigs), k])
-        for genome, contigs in cmap.items()
-    }
+    # y = {
+    #     genome: np.zeros([m, sum(np.shape(x[c])[1] for c in contigs), k])
+    #     for genome, contigs in cmap.items()
+    # }
+    y = {}
     # for genome in cmap:
     for genome, contigs in cmap.items():
         # m = 1
-        # n = sum(np.shape(x[c])[1] for c in contigs)
+        n = sum(np.shape(x[c])[1] for c in contigs)
         # k = 4
-        # y[genome] = np.zeros([m, n, k])
+        y[genome] = np.zeros([m, n, k])
 
         # Add alignment data
         beg = 0
@@ -253,7 +255,7 @@ def main():
 
     # Create dir if not exists
     # pathlib.Path(args.output_dir).mkdir(exist_ok=True, parents=True)
-
+    return None
     # Mapping stats
     cols = '\t'.join([
         'alignment', 'genome', 'mean_cov', 'median_cov', 'n_sites', 'n_gaps',
