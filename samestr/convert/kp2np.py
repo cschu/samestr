@@ -96,77 +96,78 @@ def kp2np(kpileups, contig_map, sample, gene_file, output_dir):
     x = add_pileups(kpileups, x)
     cmap = read_contig_map(contig_map)
 
-    with open(os.path.join(output_dir, f"{sample}.aln_stats.txt"), "wt") as stats_out:
-        print(*STATS_HEADER, sep="\t", file=stats_out,)
+    # with open(os.path.join(output_dir, f"{sample}.aln_stats.txt"), "wt") as stats_out:
+        # print(*STATS_HEADER, sep="\t", file=stats_out,)
 
-        # Concatenate contigs
-        # -------------------
-        y = {}
-        # for genome in cmap:
-        for genome, contigs in cmap.items():
-            m = 1
-            n = sum([np.shape(x[c])[1] for c in contigs])
-            k = 4
-            y[genome] = np.zeros([m, n, k])
+    # Concatenate contigs
+    # -------------------
+    y = {}
+    # for genome in cmap:
+    for genome, contigs in cmap.items():
+        m = 1
+        n = sum([np.shape(x[c])[1] for c in contigs])
+        k = 4
+        y[genome] = np.zeros([m, n, k])
 
-            # Add alignment data
-            beg = 0
-            end = 0
-            for contig in contigs:
-                end += np.shape(x[contig])[1]
-                y[genome][0, beg:end, :] = x[contig]
-                beg = end
+        # Add alignment data
+        beg = 0
+        end = 0
+        for contig in contigs:
+            end += np.shape(x[contig])[1]
+            y[genome][0, beg:end, :] = x[contig]
+            beg = end
 
-            species = y[genome]
-            cov = species.sum(axis=2)
+        species = y[genome]
+        cov = species.sum(axis=2)
 
-            # coverage [depth]
-            mean_cov = round(np.mean(cov), 4)
-            median_cov = round(np.median(cov), 4)
+        # coverage [depth]
+        # mean_cov = round(np.mean(cov), 4)
+        # median_cov = round(np.median(cov), 4)
 
-            # coverage [width]
-            n_sites = species.shape[1]
-            n_gaps = (cov == 0).sum()
-            n_covered = n_sites - n_gaps
+        # coverage [width]
+        n_sites = species.shape[1]
+        n_gaps = (cov == 0).sum()
+        n_covered = n_sites - n_gaps
 
-            # n of variant sites, monomorphic, .., polymorphic
-            n_mono = ((species > 0).sum(axis=2) == 1).sum()
-            n_duo = ((species > 0).sum(axis=2) == 2).sum()
-            n_tri = ((species > 0).sum(axis=2) == 3).sum()
-            n_quat = ((species > 0).sum(axis=2) == 4).sum()
-            n_poly = ((species > 0).sum(axis=2) > 1).sum()
+        # n of variant sites, monomorphic, .., polymorphic
+        # n_mono = ((species > 0).sum(axis=2) == 1).sum()
+        # n_duo = ((species > 0).sum(axis=2) == 2).sum()
+        # n_tri = ((species > 0).sum(axis=2) == 3).sum()
+        # n_quat = ((species > 0).sum(axis=2) == 4).sum()
+        # n_poly = ((species > 0).sum(axis=2) > 1).sum()
 
-            # fraction of covered sites,
-            # fraction of covered sites with variant, monomorphic, .., polymorphic
-            # if not n_covered == 0:
-            if n_covered != 0:
-                f_covered = round(n_covered / n_sites, 4)
-                f_mono = round(n_mono / n_covered, 4)
-                f_duo = round(n_duo / n_covered, 4)
-                f_tri = round(n_tri / n_covered, 4)
-                f_quat = round(n_quat / n_covered, 4)
-                f_poly = round(n_poly / n_covered, 4)
+        # fraction of covered sites,
+        # fraction of covered sites with variant, monomorphic, .., polymorphic
+        # if not n_covered == 0:
+        # if n_covered != 0:
+        #     f_covered = round(n_covered / n_sites, 4)
+        #     f_mono = round(n_mono / n_covered, 4)
+        #     f_duo = round(n_duo / n_covered, 4)
+        #     f_tri = round(n_tri / n_covered, 4)
+        #     f_quat = round(n_quat / n_covered, 4)
+        #     f_poly = round(n_poly / n_covered, 4)
 
-            else:
-                f_covered, f_mono, f_duo, \
-                    f_tri, f_quat, f_poly = 0, 0, 0, 0, 0, 0
+        # else:
+        #     f_covered, f_mono, f_duo, \
+        #         f_tri, f_quat, f_poly = 0, 0, 0, 0, 0, 0
 
-            print(
-                f"{genome}.{sample}",
-                genome, mean_cov, median_cov, n_sites, n_gaps,
-                n_covered, n_mono, n_duo, n_tri, n_quat, n_poly, f_covered, f_mono,
-                f_duo, f_tri, f_quat, f_poly,
-                sep="\t", file=stats_out,
+        # print(
+        #     f"{genome}.{sample}",
+        #     genome, mean_cov, median_cov, n_sites, n_gaps,
+        #     n_covered, n_mono, n_duo, n_tri, n_quat, n_poly, f_covered, f_mono,
+        #     f_duo, f_tri, f_quat, f_poly,
+        #     sep="\t", file=stats_out,
+        # )
+        
+        # only write to numpy file if there is coverage left after convert criteria
+        # if not n_covered == 0:
+        # if n_covered != 0:
+        if n_covered:
+            np.savez_compressed(
+                os.path.join(output_dir, f"{genome}.{sample}"),
+                y[genome],
+                allow_pickle=True
             )
-            
-            # only write to numpy file if there is coverage left after convert criteria
-            # if not n_covered == 0:
-            if n_covered != 0:
-                np.savez_compressed(
-                    os.path.join(output_dir, f"{genome}.{sample}"),
-                    y[genome],
-                    allow_pickle=True
-                )
 
 
 
