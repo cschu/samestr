@@ -148,4 +148,4 @@ def aln2stats(args):
 
     # write df to file
     ofn = '%s/%s.aln_stats.txt' % (args['output_dir'], args['clade'])
-    df.to_csv(ofn, sep='\t', index_label=False, index=False)
+    df.sort_values(by=["Sample"]).to_csv(ofn, sep='\t', index_label=False, index=False)
