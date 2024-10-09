@@ -120,8 +120,8 @@ def parse_bases(genes):
     Returns:
         dict: a dictionary indexed by contigs and containing the gene name, reference nucleotide, and codon position as values
     """
-    # nuc = defaultdict(dict)
-    nuc = {}
+    nuc = defaultdict(dict)
+    # nuc = {}
     # for g, gene_data in genes.items():
     for gene_data in genes:
         # begin = gene_data['begin']
@@ -145,7 +145,8 @@ def parse_bases(genes):
                 codon_pos = 1 if codon_pos == 0 else 0
             codon_pos = 3 if codon_pos == 0 else codon_pos
             # nuc[gene_data.contig_id][i] = f"{gene_data.gene_id}\t{base}\t{codon_pos}"
-            nuc.setdefault(gene_data.contig_id, {})[i] = (gene_data.gene_id, base, codon_pos)
+            # nuc.setdefault(gene_data.contig_id, {})[i] = (gene_data.gene_id, base, codon_pos)
+            nuc[gene_data.contig_id][i] = (gene_data.gene_id, base, codon_pos)
 
     return nuc
 
