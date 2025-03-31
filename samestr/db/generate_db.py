@@ -1,5 +1,6 @@
 import bz2
 import gzip
+import os
 import pickle as pickle
 from Bio import SeqIO
 from os.path import isdir, isfile
@@ -7,6 +8,8 @@ from os import makedirs
 import pandas as pd
 import re
 
+from samestr.db import get_database, initialise_db
+from samestr.db.models.tables import Marker, Clade
 from samestr.utils import clade_path, write_json, write_tsv
 
 import logging
@@ -184,11 +187,22 @@ def generate_db(input_args):
         all_clades = clade_intersect
 
     added_clades = {}
+
+    db_path = os.path.join(input_args['output_dir'], "db_markers.sqlite3")
+    engine, db_session = get_database(db_path, in_memory=False)
+    initialise_db(engine)
+
     for clade in all_clades:
 
         if clade in orig_clades:
             LOG.debug('Clade was already present in the database: %s' % clade)
             continue
+
+        db_clade = db_session.query(Clade).filter(Clade.name == clade).one_or_none()
+        if db_clade is None:
+            db_clade = Clade(name=clade)
+            db_session.add(db_clade)
+            db_session.commit()
 
         # set output directory and names
         output_dir = input_args['output_dir'] + '/' + clade_path(clade)
@@ -239,6 +253,20 @@ def generate_db(input_args):
                     SeqIO.write(seq, marker_file, 'fasta')
 
                     total_marker_len += marker_len
+
+                    db_marker = Marker(
+                        contig_id=contig_id,
+                        gene_id=gene_id,
+                        clade_id=db_clade.id,
+                        begin=int(beg),
+                        end=int(end),
+                        strand=strand,
+                        seq=seq.seq,
+                        length=marker_len,
+                        total_marker_length=total_marker_len,
+                    )
+                    db_session.add(db_marker)
+
                 else:
                     remove_markers.add(marker)
 
@@ -266,7 +294,8 @@ def generate_db(input_args):
                                      'n_markers': n_markers, 
                                      'n_positions': total_marker_len}})
         
-    
+        db_session.commit()
+
     # update taxonomy
     added_taxonomy = pd.DataFrame([entry for entry in all_taxonomy if entry['clade'] in added_clades])
     added_taxonomy[['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species']] = added_taxonomy['taxon'].str.split('|', expand=True).iloc[:, :7]
