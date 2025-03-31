@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from samestr.db.models import meta
+from .models import meta
 
 
 def initialise_db(engine):
