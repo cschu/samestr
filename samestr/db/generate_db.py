@@ -8,8 +8,8 @@ from os import makedirs
 import pandas as pd
 import re
 
-from samestr.db.db import get_database, initialise_db
-from samestr.db.models.tables import Marker, Clade
+from .db import get_database, initialise_db
+from .models.tables import Marker, Clade
 from samestr.utils import clade_path, write_json, write_tsv
 
 import logging
