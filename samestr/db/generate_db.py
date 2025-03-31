@@ -261,7 +261,7 @@ def generate_db(input_args):
                         begin=int(beg),
                         end=int(end),
                         strand=strand,
-                        seq=seq.seq,
+                        seq=str(seq.seq),
                         length=marker_len,
                         total_marker_length=total_marker_len,
                     )
