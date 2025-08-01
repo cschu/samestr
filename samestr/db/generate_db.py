@@ -1,19 +1,67 @@
 import bz2
 import gzip
+import logging
 import os
+import pathlib
 import pickle as pickle
-from Bio import SeqIO
+import re
+
 from os.path import isdir, isfile
 from os import makedirs
+
+from Bio import SeqIO
 import pandas as pd
-import re
 
 from .db import get_database, initialise_db
 from .models.tables import Marker, Clade
 from samestr.utils import clade_path, write_json, write_tsv
 
-import logging
-LOG = logging.getLogger(__name__)    
+
+LOG = logging.getLogger(__name__)
+
+def extract_motus_markers(marker_info, markers_fasta):
+    markers_info = {"markers": {}}
+        
+    # read taxonomy info files
+    df1 = pd.read_csv(marker_info[0], sep='\t')
+    df2 = pd.read_csv(marker_info[1], sep='\t')
+
+    # Function to find the ID column
+    def find_id_column(df):
+        for col in df.columns:
+            if re.search(r'mOTU_v\d+_ID', col):
+                return col
+        return None
+    
+    # Rename columns from ~meta-mOTU_v2_ID, ~ref-mOTU_v3_ID etc to 'clade'
+    id_col1 = find_id_column(df1)
+    id_col2 = find_id_column(df2)
+    if id_col1 and id_col2:
+        df1 = df1.rename(columns={id_col1: 'clade', 'mOTU': 'species'})
+        df2 = df2.rename(columns={id_col2: 'clade', 'mOTU': 'species'})
+    else:
+        raise ValueError("mOTUs ID column not found in one or both tables: %s" % (', '.join(marker_info)))
+
+    # Select relevant columns
+    columns_to_keep = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species', 'clade']
+    df1 = df1[columns_to_keep]
+    df2 = df2[columns_to_keep]
+
+    # Concatenate the tables and merge taxonomy
+    taxonomy_df = pd.concat([df1, df2], ignore_index=True)
+    
+    # Populate marker_info based on db_mOTU_DB_CEN.fasta
+    for marker in markers_fasta:
+        clade, _ = marker.split('.', 1)
+        if marker not in markers_info['markers']:
+            if clade != 'NA' and clade in taxonomy_df['clade'].values:
+                # TODO: this is easy but expensive, change
+                taxon = '|'.join(taxonomy_df.loc[taxonomy_df['clade'] == clade, ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species']].values[0])
+                markers_info['markers'][marker] = {'clade': clade, 'taxon': taxon}
+    
+    return markers_info
+
+
 
 def generate_db(input_args):
     """
@@ -109,77 +157,48 @@ def generate_db(input_args):
     if db_tool == 'MetaPhlAn':
         markers_info = pickle.load(bz2.BZ2File(input_args['markers_info'][0]))
     elif db_tool == 'mOTUs':
-        markers_info = {"markers": {}}
-        
-        # read taxonomy info files
-        df1 = pd.read_csv(input_args['markers_info'][0], sep='\t')
-        df2 = pd.read_csv(input_args['markers_info'][1], sep='\t')
+        markers_info = extract_motus_markers(input_args['markers_info'], markers_fasta)
 
-        # Function to find the ID column
-        def find_id_column(df):
-            for col in df.columns:
-                if re.search(r'mOTU_v\d+_ID', col):
-                    return col
-            return None
-        
-        # Rename columns from ~meta-mOTU_v2_ID, ~ref-mOTU_v3_ID etc to 'clade'
-        id_col1 = find_id_column(df1)
-        id_col2 = find_id_column(df2)
-        if id_col1 and id_col2:
-            df1 = df1.rename(columns={id_col1: 'clade', 'mOTU': 'species'})
-            df2 = df2.rename(columns={id_col2: 'clade', 'mOTU': 'species'})
-        else:
-            raise ValueError("mOTUs ID column not found in one or both tables: %s" % (', '.join(input_args['markers_info'])))
-
-        # Select relevant columns
-        columns_to_keep = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species', 'clade']
-        df1 = df1[columns_to_keep]
-        df2 = df2[columns_to_keep]
-
-        # Concatenate the tables and merge taxonomy
-        taxonomy_df = pd.concat([df1, df2], ignore_index=True)
-       
-        # Populate marker_info based on db_mOTU_DB_CEN.fasta
-        for marker in markers_fasta:
-            clade, _ = marker.split('.', 1)
-            if marker not in markers_info['markers']:
-                if clade != 'NA' and clade in taxonomy_df['clade'].values:
-                    # TODO: this is easy but expensive, change
-                    taxon = '|'.join(taxonomy_df.loc[taxonomy_df['clade'] == clade, ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species']].values[0])
-                    markers_info['markers'][marker] = {'clade': clade, 'taxon': taxon}
-
-    for marker in markers_info['markers']:
-        n_markers += 1
+    preselected_clades = input_args.get('clade', set())
+    for n_markers, (marker, marker_data) in enumerate(markers_info['markers'].items(), start=1):
 
         # retrieve clade names
-        clade = markers_info['markers'][marker]['clade']
+        clade = marker_data['clade']
         all_clades.add(clade)
         if clade in orig_clades:
             continue
 
         # get only selected clades
-        if 'clade' in input_args and input_args['clade'] is not None:
-            if clade not in input_args['clade']:
-                continue
-
-        if clade not in all_markers:
-            all_markers[clade] = set()
+        if preselected_clades and clade not in preselected_clades:
+            continue
+        # if 'clade' in input_args and input_args['clade'] is not None:
+        #     if clade not in input_args['clade']:
+        #         continue
+        
+        all_markers.setdefault(clade, set())
+        if not all_markers[clade]:
             all_taxonomy.append({'clade': markers_info['markers'][marker]['clade'], 
-                                 'taxon': markers_info['markers'][marker]['taxon']})   
+                                 'taxon': markers_info['markers'][marker]['taxon']})
         all_markers[clade].add(marker)
+        # if clade not in all_markers:
+        #     all_markers[clade] = set()
+        #     all_taxonomy.append({'clade': markers_info['markers'][marker]['clade'], 
+        #                          'taxon': markers_info['markers'][marker]['taxon']})   
+        # all_markers[clade].add(marker)
 
     LOG.debug('Database contains %s clades, %s markers' %
               (len(all_clades), n_markers))
 
     # report selected clades
-    if 'clade' in input_args and input_args['clade'] is not None:     
+    # if 'clade' in input_args and input_args['clade'] is not None:
+    if preselected_clades:
         clade_intersect = set(
-            input_args['clade']).intersection(all_clades)
+            preselected_clades).intersection(all_clades)
         clade_diff = set(
-            input_args['clade']).difference(clade_intersect)
+            preselected_clades).difference(clade_intersect)
 
         LOG.debug('Selected clades found in the database: %s/%s' %
-                  (len(clade_intersect), len(input_args['clade'])))
+                  (len(clade_intersect), len(preselected_clades)))
         clade_diff = [c for c in clade_diff if c not in orig_clades]
         if len(clade_diff) > 0:
             LOG.debug('Clades not found in the database: %s' %
@@ -208,8 +227,9 @@ def generate_db(input_args):
         output_dir = input_args['output_dir'] + '/' + clade_path(clade)
 
         # Create dir if not exists
-        if not isdir(output_dir):
-            makedirs(output_dir)
+        pathlib.Path(output_dir).mkdir(exist_ok=True, parents=True)
+        # if not isdir(output_dir):
+        #     makedirs(output_dir)
 
         output_base = output_dir + clade
         marker_filename = output_base + '.markers.fa.gz'
@@ -234,8 +254,10 @@ def generate_db(input_args):
         with gzip.open(marker_filename, 'wt') as marker_file:
 
             for marker in clade_markers:
-                if marker in markers_fasta:
-                    seq = markers_fasta[marker]
+                seq = markers_fasta.get(marker)
+                # if marker in markers_fasta:
+                if seq is not None:
+                    # seq = markers_fasta[marker]
                     marker_len = len(seq)
 
                     contig_id = marker
@@ -286,10 +308,13 @@ def generate_db(input_args):
                 ['\t'.join([clade, m]) for m in clade_markers]) + '\n')
 
         # data for manifest        
-        fcount = 0
-        for fn in [marker_filename, pos_filename, cmap_filename, gene_filename]:
-            if isfile(fn):
-                fcount += 1
+        fcount = sum(
+            isfile(fn)
+            for fn in (marker_filename, pos_filename, cmap_filename, gene_filename,)
+        )
+        # for fn in [marker_filename, pos_filename, cmap_filename, gene_filename]:
+        #     if isfile(fn):
+        #         fcount += 1
         added_clades.update({clade: {'n_files': fcount, 
                                      'n_markers': n_markers, 
                                      'n_positions': total_marker_len}})
