@@ -76,13 +76,13 @@ def compare(args):
     global non_null_global
     global non_null_positions
     def process_sample(args):
-        sample_matrix = args["sample_matrix"]
+        sample_matrix = x[args[1],:,:] #["sample_matrix"]
         shortest_distance = (((sample_matrix > 0) *
                                   non_null_global).sum(axis=2) > 0).sum(axis=1)
         shared_overlap = ((sample_matrix.sum(axis=1) > 0) *
                             non_null_positions).sum(axis=1)
         fraction_phenotype = np.nan_to_num(shortest_distance / shared_overlap)
-        return args["sample"], (shortest_distance, shared_overlap, fraction_phenotype)
+        return args[0], (shortest_distance, shared_overlap, fraction_phenotype)
 
     with closest_out, overlap_out, fraction_out:
         print("Sample", *samples, sep="\t", file=closest_out)
@@ -93,7 +93,7 @@ def compare(args):
         non_null_positions = (x.sum(axis=2) > 0)
 
         with mp.Pool(processes=8) as pool:
-            proc_results = [pool.apply_async(process_sample, {"sample": sample, "sample_matrix": sample_matrix}) for sample, sample_matrix in zip(samples, x)]
+            proc_results = [pool.apply_async(process_sample, (sample, i)) for i, sample in enumerate(samples)]
 
             results = {
                 sample: items
