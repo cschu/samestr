@@ -82,7 +82,7 @@ def compare(args):
         shared_overlap = ((sample_matrix.sum(axis=1) > 0) *
                             non_null_positions).sum(axis=1)
         fraction_phenotype = np.nan_to_num(shortest_distance / shared_overlap)
-        return args[0], (shortest_distance, shared_overlap, fraction_phenotype)
+        return args[0], (list(shortest_distance), list(shared_overlap), list(fraction_phenotype))
 
     with closest_out, overlap_out, fraction_out:
         print("Sample", *samples, sep="\t", file=closest_out)
