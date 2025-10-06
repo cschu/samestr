@@ -17,17 +17,25 @@ from samestr.filter import consensus
 
 LOG = logging.getLogger(__name__)
 
-global x
-global non_null_global
-global non_null_positions
-def process_sample(args):
-    sample_matrix = x[args[1],:,:] #["sample_matrix"]
+# global x
+# global non_null_global
+# global non_null_positions
+def process_sample(sample_name, sample_index):
+    sample_matrix = x[sample_index,:,:] #["sample_matrix"]
     shortest_distance = (((sample_matrix > 0) *
                                 non_null_global).sum(axis=2) > 0).sum(axis=1)
     shared_overlap = ((sample_matrix.sum(axis=1) > 0) *
                         non_null_positions).sum(axis=1)
     fraction_phenotype = np.nan_to_num(shortest_distance / shared_overlap)
-    return args[0], (list(shortest_distance), list(shared_overlap), list(fraction_phenotype))
+    return sample_name, (list(shortest_distance), list(shared_overlap), list(fraction_phenotype))
+
+def pool_initialiser(X, nn_global, nn_pos):
+    global x
+    x = X
+    global non_null_global
+    non_null_global = nn_global
+    global non_null_positions
+    non_null_positions = nn_pos
 
 
 def compare(args):
@@ -94,7 +102,7 @@ def compare(args):
         non_null_global = (x > 0)
         non_null_positions = (x.sum(axis=2) > 0)
 
-        with mp.Pool(processes=8) as pool:
+        with mp.Pool(processes=8, initializer=pool_initialiser, initargs=(x, non_null_global, non_null_positions,)) as pool:
             proc_results = [pool.apply_async(process_sample, (sample, i)) for i, sample in enumerate(samples)]
 
             results = {
