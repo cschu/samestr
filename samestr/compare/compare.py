@@ -17,6 +17,18 @@ from samestr.filter import consensus
 
 LOG = logging.getLogger(__name__)
 
+global x
+global non_null_global
+global non_null_positions
+def process_sample(args):
+    sample_matrix = x[args[1],:,:] #["sample_matrix"]
+    shortest_distance = (((sample_matrix > 0) *
+                                non_null_global).sum(axis=2) > 0).sum(axis=1)
+    shared_overlap = ((sample_matrix.sum(axis=1) > 0) *
+                        non_null_positions).sum(axis=1)
+    fraction_phenotype = np.nan_to_num(shortest_distance / shared_overlap)
+    return args[0], (list(shortest_distance), list(shared_overlap), list(fraction_phenotype))
+
 
 def compare(args):
 
@@ -38,7 +50,6 @@ def compare(args):
              (args['clade'], len(samples)))
 
     # load freqs
-    global x
     x = load_numpy_file(args['input_file'])
 
     np.seterr(divide='ignore', invalid='ignore')
@@ -73,16 +84,7 @@ def compare(args):
     overlap_out = open('%s/%s.overlap.txt' % (args['output_dir'], args['clade']), 'w')
     fraction_out = open('%s/%s.fraction.txt' % (args['output_dir'], args['clade']), 'w')
 
-    global non_null_global
-    global non_null_positions
-    def process_sample(args):
-        sample_matrix = x[args[1],:,:] #["sample_matrix"]
-        shortest_distance = (((sample_matrix > 0) *
-                                  non_null_global).sum(axis=2) > 0).sum(axis=1)
-        shared_overlap = ((sample_matrix.sum(axis=1) > 0) *
-                            non_null_positions).sum(axis=1)
-        fraction_phenotype = np.nan_to_num(shortest_distance / shared_overlap)
-        return args[0], (list(shortest_distance), list(shared_overlap), list(fraction_phenotype))
+    
 
     with closest_out, overlap_out, fraction_out:
         print("Sample", *samples, sep="\t", file=closest_out)
