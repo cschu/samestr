@@ -1,9 +1,13 @@
 
 import logging
 import os
+
 from os.path import basename, exists
 
+import multiprocessing as mp
+
 import numpy as np
+
 from Bio import Seq, SeqRecord, AlignIO
 from Bio.Align import MultipleSeqAlignment
 
@@ -34,7 +38,9 @@ def compare(args):
              (args['clade'], len(samples)))
 
     # load freqs
+    global x
     x = load_numpy_file(args['input_file'])
+
     np.seterr(divide='ignore', invalid='ignore')
 
     # conversion arrays
@@ -67,6 +73,17 @@ def compare(args):
     overlap_out = open('%s/%s.overlap.txt' % (args['output_dir'], args['clade']), 'w')
     fraction_out = open('%s/%s.fraction.txt' % (args['output_dir'], args['clade']), 'w')
 
+    global non_null_global
+    global non_null_positions
+    def process_sample(args):
+        sample_matrix = args["sample_matrix"]
+        shortest_distance = (((sample_matrix > 0) *
+                                  non_null_global).sum(axis=2) > 0).sum(axis=1)
+        shared_overlap = ((sample_matrix.sum(axis=1) > 0) *
+                            non_null_positions).sum(axis=1)
+        fraction_phenotype = np.nan_to_num(shortest_distance / shared_overlap)
+        return args["sample"], (shortest_distance, shared_overlap, fraction_phenotype)
+
     with closest_out, overlap_out, fraction_out:
         print("Sample", *samples, sep="\t", file=closest_out)
         print("Sample", *samples, sep="\t", file=overlap_out)
@@ -75,17 +92,31 @@ def compare(args):
         non_null_global = (x > 0)
         non_null_positions = (x.sum(axis=2) > 0)
 
-        for i, (sample, sample_matrix) in enumerate(zip(samples, x)):
-            LOG.debug("Processing sample %s (%s/%s)...", sample, i + 1, len(samples))
-            shortest_distance = (((sample_matrix > 0) *
-                                  non_null_global).sum(axis=2) > 0).sum(axis=1)
-            shared_overlap = ((sample_matrix.sum(axis=1) > 0) *
-                              non_null_positions).sum(axis=1)
-            fraction_phenotype = np.nan_to_num(shortest_distance / shared_overlap)
+        with mp.Pool(processes=8) as pool:
+            proc_results = [pool.apply_async(process_sample, {"sample": sample, "sample_matrix": sample_matrix}) for sample, sample_matrix in zip(samples, x)]
 
-            print(sample, *shortest_distance, sep="\t", file=closest_out)
-            print(sample, *shared_overlap, sep="\t", file=overlap_out)
-            print(sample, *fraction_phenotype, sep="\t", file=fraction_out)
+            results = {
+                sample: items
+                for sample, items in [res.get() for res in proc_results]
+            }
+
+            for sample in samples:
+                closest, overlap, fraction = results.get(sample, [["NA"], ["NA"], ["NA"]])
+                print(sample, *closest, sep="\t", file=closest_out)
+                print(sample, *overlap, sep="\t", file=overlap_out)
+                print(sample, *fraction, sep="\t", file=fraction_out)
+
+        # for i, (sample, sample_matrix) in enumerate(zip(samples, x)):
+        #     LOG.debug("Processing sample %s (%s/%s)...", sample, i + 1, len(samples))
+        #     shortest_distance = (((sample_matrix > 0) *
+        #                           non_null_global).sum(axis=2) > 0).sum(axis=1)
+        #     shared_overlap = ((sample_matrix.sum(axis=1) > 0) *
+        #                       non_null_positions).sum(axis=1)
+        #     fraction_phenotype = np.nan_to_num(shortest_distance / shared_overlap)
+
+        #     print(sample, *shortest_distance, sep="\t", file=closest_out)
+        #     print(sample, *shared_overlap, sep="\t", file=overlap_out)
+        #     print(sample, *fraction_phenotype, sep="\t", file=fraction_out)
 
 
     # output dominant variants as msa
