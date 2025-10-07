@@ -7,7 +7,6 @@ from os.path import basename, exists
 import multiprocessing as mp
 
 import numpy as np
-
 from Bio import Seq, SeqRecord, AlignIO
 from Bio.Align import MultipleSeqAlignment
 
