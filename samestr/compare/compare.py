@@ -37,7 +37,7 @@ def pool_initialiser(X, nn_global, nn_pos):
     non_null_positions = nn_pos
 
 
-def compare(args):
+def compare(args, nprocs=1,):
 
     # if exists, skip
     output_name = os.path.join(args['output_dir'], basename(args['input_file']))
@@ -101,31 +101,35 @@ def compare(args):
         non_null_global = (x > 0)
         non_null_positions = (x.sum(axis=2) > 0)
 
-        with mp.Pool(processes=8, initializer=pool_initialiser, initargs=(x, non_null_global, non_null_positions,)) as pool:
-            proc_results = [pool.apply_async(process_sample, (sample, i)) for i, sample in enumerate(samples)]
+        if nprocs > 1:
 
-            results = {
-                sample: items
-                for sample, items in [res.get() for res in proc_results]
-            }
+            with mp.Pool(processes=8, initializer=pool_initialiser, initargs=(x, non_null_global, non_null_positions,)) as pool:
+                proc_results = [pool.apply_async(process_sample, (sample, i)) for i, sample in enumerate(samples)]
 
-            for sample in samples:
-                closest, overlap, fraction = results.get(sample, [["NA"], ["NA"], ["NA"]])
-                print(sample, *closest, sep="\t", file=closest_out)
-                print(sample, *overlap, sep="\t", file=overlap_out)
-                print(sample, *fraction, sep="\t", file=fraction_out)
+                results = {
+                    sample: items
+                    for sample, items in [res.get() for res in proc_results]
+                }
 
-        # for i, (sample, sample_matrix) in enumerate(zip(samples, x)):
-        #     LOG.debug("Processing sample %s (%s/%s)...", sample, i + 1, len(samples))
-        #     shortest_distance = (((sample_matrix > 0) *
-        #                           non_null_global).sum(axis=2) > 0).sum(axis=1)
-        #     shared_overlap = ((sample_matrix.sum(axis=1) > 0) *
-        #                       non_null_positions).sum(axis=1)
-        #     fraction_phenotype = np.nan_to_num(shortest_distance / shared_overlap)
+                for sample in samples:
+                    closest, overlap, fraction = results.get(sample, [["NA"], ["NA"], ["NA"]])
+                    print(sample, *closest, sep="\t", file=closest_out)
+                    print(sample, *overlap, sep="\t", file=overlap_out)
+                    print(sample, *fraction, sep="\t", file=fraction_out)
 
-        #     print(sample, *shortest_distance, sep="\t", file=closest_out)
-        #     print(sample, *shared_overlap, sep="\t", file=overlap_out)
-        #     print(sample, *fraction_phenotype, sep="\t", file=fraction_out)
+        else:
+
+            for i, (sample, sample_matrix) in enumerate(zip(samples, x)):
+                LOG.debug("Processing sample %s (%s/%s)...", sample, i + 1, len(samples))
+                shortest_distance = (((sample_matrix > 0) *
+                                      non_null_global).sum(axis=2) > 0).sum(axis=1)
+                shared_overlap = ((sample_matrix.sum(axis=1) > 0) *
+                                  non_null_positions).sum(axis=1)
+                fraction_phenotype = np.nan_to_num(shortest_distance / shared_overlap)
+
+                print(sample, *shortest_distance, sep="\t", file=closest_out)
+                print(sample, *shared_overlap, sep="\t", file=overlap_out)
+                print(sample, *fraction_phenotype, sep="\t", file=fraction_out)
 
 
     # output dominant variants as msa

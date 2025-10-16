@@ -304,7 +304,8 @@ def samestr(input_args):
             LOG.info('Comparing alignments: %s', len(freqs))
 
             # Run: compare
-            cmd_args = parallelize_async(compare, cmd_args, input_args['nprocs'])
+            # cmd_args = parallelize_async(compare, cmd_args, input_args['nprocs'])
+            compare(cmd_args, nprocs=input_args['nprocs'],)
 
     elif input_args['command'] == 'summarize':
         cmd_args = serialize(summarize, [input_args])
