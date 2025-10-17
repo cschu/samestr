@@ -12,7 +12,10 @@ from samestr.convert.buffered_reader import stream_file
 
 
 LOG = logging.getLogger(__name__)
+
 CIGAR_RE = re.compile(r'(\d+)([MIDNSHP])')
+
+BASES = {"A": 0, "C": 1, "G": 2, "T": 3}
 
 
 def parse_positions(f):
@@ -67,27 +70,31 @@ def pileup(bam_stream, gene_file, min_bq, min_mq, min_depth, outstream=sys.stdou
 
         p = int(begin)
         
-        aln_string = decode_cigar(cigar)
+        # bases_and_quals = iter(
+        #     zip(
+        #         (BASES.get(b) for b in seq),
+        #         convert_qual(qual)
+        #     )
+        # )
+        bases_and_quals = zip(seq, qual)
         
-        bases_and_quals = iter(
-            zip(
-                (BASES.get(b) for b in seq),
-                convert_qual(qual))
-        )
-        
-        for oplen, cigar_op in aln_string:
+        for oplen, cigar_op in decode_cigar(cigar):
             if cigar_op == "H":
                 continue
-            elif cigar_op == "D":
-                base = "-"                
-            else:
+            # elif cigar_op == "D":
+            #     base = "-"                
+            # else:
+            elif cigar_op != "D":
                 is_insertion = cigar_op in ("I", "S")
                 for pp in range(p, p + oplen):
                     cur_base, cur_qual = next(bases_and_quals)
                     if not is_insertion:
                         # base = (cur_base, "-")[(cur_qual < min_bq)]
                         # if base != "-" and start <= pp <= end:
-                        if cur_qual >= min_bq and cur_base is not None and 1 <= pp <= contig.shape[1]:
+                        # if cur_qual >= min_bq and cur_base is not None and 1 <= pp <= contig.shape[1]:
+
+                        if BASES.get(cur_base) is not None and (ord(cur_qual) - 33) >= min_bq and pp <= contig.shape[1]:
+
                             # f_table[rname][pp][base] += 1
                             contig[0, pp - 1, cur_base] += 1
                             # f_table[rname][0, pp - 1, cur_base] += 1
@@ -108,7 +115,6 @@ def pileup(bam_stream, gene_file, min_bq, min_mq, min_depth, outstream=sys.stdou
     #                 yield c, pos, nuc, counts
 
 
-BASES = {b: i for b, i in zip('ACGT', range(4))}
 
 def add_pileups(positions, contigs):
     for contig, pos, allele, count in positions:
@@ -152,30 +158,35 @@ def kp2np(kpileups, contig_map, sample, gene_file, output_dir):
     # Concatenate contigs
     # -------------------
     m, k = 1, 4
-    y = {}
+    # y = {}
     for genome, contigs in cmap.items():
         n = sum(np.shape(x[c])[1] for c in contigs)
-        y[genome] = np.zeros([m, n, k])
+        # y[genome] = np.zeros([m, n, k])
+        y = np.zeros([m, n, k])
 
         # Add alignment data
         beg = 0
         end = 0
         for contig in contigs:
             end += np.shape(x[contig])[1]
-            y[genome][0, beg:end, :] = x[contig]
+            # y[genome][0, beg:end, :] = x[contig]
+            y[0, beg:end, :] = x[contig]
             beg = end
 
-        species = y[genome]
-        cov = species.sum(axis=2)
+        # species = y[genome]
+        # cov = species.sum(axis=2)
+        cov = y.sum(axis=2)
 
-        n_sites = species.shape[1]
+        # n_sites = species.shape[1]
         n_gaps = (cov == 0).sum()
-        n_covered = n_sites - n_gaps
+        # n_covered = n_sites - n_gaps
+        n_covered = n - n_gaps
 
         # only write to numpy file if there is coverage left after convert criteria
         if n_covered:
             np.savez_compressed(
                 output_dir / f"{genome}.{sample}",
-                y[genome],
+                # y[genome],
+                y,
                 allow_pickle=True
             )
