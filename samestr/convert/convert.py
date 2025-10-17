@@ -71,7 +71,7 @@ def pileup(bam_stream, gene_file, min_bq, min_mq, min_depth, outstream=sys.stdou
         
         bases_and_quals = iter(
             zip(
-                ("ACGTN".index(b) for b in seq),
+                (BASES.get(b) for b in seq),
                 convert_qual(qual))
         )
         
@@ -87,7 +87,7 @@ def pileup(bam_stream, gene_file, min_bq, min_mq, min_depth, outstream=sys.stdou
                     if not is_insertion:
                         # base = (cur_base, "-")[(cur_qual < min_bq)]
                         # if base != "-" and start <= pp <= end:
-                        if cur_qual >= min_bq and cur_base < 4 and 1 <= pp <= contig.shape[1]:
+                        if cur_qual >= min_bq and cur_base is not None and 1 <= pp <= contig.shape[1]:
                             # f_table[rname][pp][base] += 1
                             contig[0, pp - 1, cur_base] += 1
                             # f_table[rname][0, pp - 1, cur_base] += 1
