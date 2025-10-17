@@ -93,7 +93,9 @@ def pileup(bam_stream, gene_file, min_bq, min_mq, min_depth, outstream=sys.stdou
                         # if base != "-" and start <= pp <= end:
                         # if cur_qual >= min_bq and cur_base is not None and 1 <= pp <= contig.shape[1]:
 
-                        if BASES.get(cur_base) is not None and (ord(cur_qual) - 33) >= min_bq and pp <= contig.shape[1]:
+                        cur_base = BASES.get(cur_base)
+
+                        if cur_base is not None and (ord(cur_qual) - 33) >= min_bq and pp <= contig.shape[1]:
 
                             # f_table[rname][pp][base] += 1
                             contig[0, pp - 1, cur_base] += 1
