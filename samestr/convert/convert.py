@@ -37,6 +37,9 @@ def initialise_contigs_db(clades, db):
         for clade, contig, length in cursor.fetchall():
             contigs[contig] = clade, np.zeros([1, length, 4])
     
+
+    LOG.debug("contig_dict = %s" % str(list(contigs.items())[:1]))
+
     return contigs
 
 
@@ -132,7 +135,7 @@ def read_contig_map(contig_map):
         
 
 def process_genome(sample, genome, contig_pileups, output_dir):
-    n = sum(np.shape(c[c])[1] for c in contig_pileups)
+    n = sum(np.shape(c)[1] for c in contig_pileups)
     y = np.zeros([1, n, 4])
 
     # Add alignment data
