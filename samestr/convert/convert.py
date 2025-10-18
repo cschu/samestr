@@ -65,7 +65,7 @@ def pileup(bam_stream, gene_file, min_bq, min_mq, min_depth, clades, db, outstre
             cur_rname = rname
             contig = contigs.get(rname)
             if contig is None:
-                LOG.debug("No entry for contig `{rname}`. Skipping.")
+                LOG.debug(f"No entry for contig `{rname}`. Skipping.")
             else:
                 contig = contig[1]
 
