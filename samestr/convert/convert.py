@@ -33,7 +33,7 @@ def initialise_contigs_db(clades, db):
 
     with sqlite3.connect(db) as conn:
         cursor = conn.cursor()
-        cursor.execute(f"SELECT clade.name,marker.name,marker.length FROM marker JOIN clade ON marker.clade_id = clade.id WHERE clade.name IN ({query_placeholders}) ORDER BY clade.name,contig.name", clades)
+        cursor.execute(f"SELECT clade.name,marker.name,marker.length FROM marker JOIN clade ON marker.clade_id = clade.id WHERE clade.name IN ({query_placeholders}) ORDER BY clade.name,marker.name", clades)
         for clade, contig, length in cursor.fetchall():
             contigs[contig] = clade, np.zeros([1, length, 4])
     
