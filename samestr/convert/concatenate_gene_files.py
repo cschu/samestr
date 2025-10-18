@@ -41,6 +41,7 @@ def concatenate_gene_files(arg):
     # create a lists of gene and contig map files
     gene_files = []
     contig_maps = []
+    arg['clades_in_profile'] = []
     for clade, _ in sorted(iter(clades.items()),
                              key=lambda k_v: (k_v[1], k_v[0]),
                              reverse=True):
@@ -51,19 +52,20 @@ def concatenate_gene_files(arg):
         if isfile(gene_fname) and isfile(map_fname):
             gene_files.append(gene_fname)
             contig_maps.append(map_fname)
+        arg['clades_in_profile'].append(clade)
 
     # for each sample, concatenate all lists fo gene and contig map files, respectively
-    oosp = ooSubprocess.ooSubprocess(tmp_dir=arg['tmp_dir'])
-    if not isfile(arg['gene_file']):
-        LOG.debug('Running: cat for %s gene_files' % len(gene_files))
-        oosp.ex('cat', args=gene_files, out_fn=arg['gene_file'], verbose=False)
+    # oosp = ooSubprocess.ooSubprocess(tmp_dir=arg['tmp_dir'])
+    # if not isfile(arg['gene_file']):
+    #     LOG.debug('Running: cat for %s gene_files' % len(gene_files))
+    #     oosp.ex('cat', args=gene_files, out_fn=arg['gene_file'], verbose=False)
 
-    if not isfile(arg['contig_map']) and len(contig_maps):
-        LOG.debug('Running: cat for %s contig_maps' % len(contig_maps))
-        oosp.ex('cat',
-                args=contig_maps,
-                out_fn=arg['contig_map'],
-                verbose=False)
+    # if not isfile(arg['contig_map']) and len(contig_maps):
+    #     LOG.debug('Running: cat for %s contig_maps' % len(contig_maps))
+    #     oosp.ex('cat',
+    #             args=contig_maps,
+    #             out_fn=arg['contig_map'],
+    #             verbose=False)
 
     LOG.debug('Generated: %s, %s' % (arg['contig_map'], arg['gene_file']))
     return arg

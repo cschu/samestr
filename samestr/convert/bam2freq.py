@@ -36,6 +36,9 @@ def bam2freq(arg):
                 arg['min_base_qual'],
                 arg['min_aln_qual'],
                 arg['min_vcov'],
+                arg['clades_in_profile'],
+                arg['clades_in_profile'],
+                arg['sqlitedb'],
                 outstream=kpileup_out,
             )
             if results_incomplete(arg['np']):            

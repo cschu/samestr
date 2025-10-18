@@ -155,6 +155,12 @@ def read_params():
         type=str,
         help='Path to MetaPhlAn or mOTUs clade marker database.')
     convert_general.add_argument(
+        "--sqlitedb",
+        required=True,
+        type=str,
+        help='Path to sqlite marker database.'
+    )
+    convert_general.add_argument(
         '--db-force',
         action='store_true',
         help='Force execution, even when database version is not an exact match.'
