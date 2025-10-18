@@ -176,7 +176,7 @@ def kp2np(kpileups, contig_map, sample, gene_file, output_dir):
                 process_genome(sample, cur_genome, genome_contigs, output_dir)
                 genome_contigs.clear()
             cur_genome = genome
-        genome_contigs.append(contig)
+        genome_contigs.append(pileups)
     
     if genome_contigs:
         process_genome(sample, cur_genome, genome_contigs, output_dir)
