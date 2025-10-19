@@ -70,8 +70,8 @@ def sam2bam(arg):
             return None
 
         # index
-        if not isfile(arg['sorted_bam'] + '.bai'):
-            oosp.ex('samtools', args=['index', arg['sorted_bam']], verbose=False)
+        # if not isfile(arg['sorted_bam'] + '.bai'):
+        #     oosp.ex('samtools', args=['index', arg['sorted_bam']], verbose=False)
 
     LOG.debug('Finished: %s' % arg['sorted_bam'])
     return arg
