@@ -34,26 +34,36 @@ def initialise_contigs_db(clades, db):
     # with sqlite3.connect(f"file:{db}?mode=ro", uri=True) as conn:
     with sqlite3.connect(f"file:{db}?mode=ro", uri=True) as source, sqlite3.connect(':memory:') as conn:
         source.backup(conn)
+
         cursor = conn.execute(
-            f"SELECT clade.id, clade.name FROM clade WHERE clade.name IN ({query_placeholders})",
+            # select * from marker join (select id,name from clade where name in ('t__EUK100861', 't__EUK100870', 't__EUK100951')) as sel_clade on marker.clade_id = sel_clade.id limit 10;
+            "SELECT sel_clade.name,marker.name,marker.length "
+            "FROM marker "
+            f"JOIN (SELECT id, name FROM clade WHERE name IN ({query_placeholders}) AS sel_clade ON marker.clade_id = sel_clade.id",
             clades
         )
-        clades = {cid: cname for cid, cname in cursor}
 
-        query_placeholders = ",".join("?" * len(clades))
+
+        # cursor = conn.execute(
+        #     f"SELECT clade.id, clade.name FROM clade WHERE clade.name IN ({query_placeholders})",
+        #     clades
+        # )
+        # clades = {cid: cname for cid, cname in cursor}
+
+        # query_placeholders = ",".join("?" * len(clades))
         
-        # cursor = conn.cursor()
-        cursor = conn.execute(
-            f"SELECT marker.clade_id,marker.name,marker.length FROM marker WHERE marker.clade_id IN ({query_placeholders}) ",
-            # "JOIN marker ON marker.clade_id = clade.id "
-            # f"WHERE clade.name IN ({query_placeholders}) ",
-            # "ORDER BY clade.name,marker.name ",
-            list(clades.keys())
-        )
-        # for clade, contig, length in cursor.fetchall():
+        # # cursor = conn.cursor()
+        # cursor = conn.execute(
+        #     f"SELECT marker.clade_id,marker.name,marker.length FROM marker WHERE marker.clade_id IN ({query_placeholders}) ",
+        #     # "JOIN marker ON marker.clade_id = clade.id "
+        #     # f"WHERE clade.name IN ({query_placeholders}) ",
+        #     # "ORDER BY clade.name,marker.name ",
+        #     list(clades.keys())
+        # )
+        # # for clade, contig, length in cursor.fetchall():
         
-        for clade_id, contig, length in cursor:
-            contigs[contig] = clades.get(clade_id), np.zeros([1, length, 4])
+        for clade_name, contig, length in cursor:
+            contigs[contig] = clade_name, np.zeros([1, length, 4])
     
 
     LOG.debug("contig_dict = %s" % str(list(contigs.items())[:1]))
