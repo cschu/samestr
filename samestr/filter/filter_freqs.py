@@ -1,13 +1,17 @@
 
-import os
-from os.path import basename, exists
-import logging
-import warnings
-import numpy as np
 import gzip
+import logging
+import os
+import sqlite3
+import warnings
+
+from os.path import basename, exists
+
+import numpy as np
 
 from samestr.utils.utilities import load_numpy_file
 from samestr.utils import clade_path
+
 
 LOG = logging.getLogger(__name__)
 
@@ -27,6 +31,28 @@ def read_marker_positions(clade_marker_file):
             marker_len = int(line[2])
             marker_end = marker_start + marker_len
             marker_positions[marker] = [marker_start, marker_end, marker_len]
+    return marker_positions
+
+def get_marker_positions(clade, db):
+    marker_positions = {}
+
+    with sqlite3.connect(f"file:{db}?mode=ro", uri=True) as source, sqlite3.connect(':memory:') as conn:
+        source.backup(conn)
+
+        cursor = conn.execute(
+            "SELECT marker.name,marker.length FROM marker "
+            "JOIN clade ON marker.clade_id = clade.id "
+            "WHERE clade.name = ? "
+            "ORDER BY marker.name",
+            clade
+        )
+
+        pos = 0
+        for marker, length in cursor:
+            start, end = pos, pos + length
+            marker_positions[marker] = start, end, length
+            pos = end
+
     return marker_positions
 
 
@@ -122,7 +148,7 @@ def filter_freqs(args):
     # load sample selection
     if args['input_select'] is not None:
         with open(args['input_select'], 'r') as file:
-            input_select = file.read().strip().split('\n')
+            input_select = set(file.read().strip().split('\n'))
 
     # skip if fewer than args['clade_min_samples'] samples
     if not clade_min_samples(args, len(samples)):
@@ -136,18 +162,26 @@ def filter_freqs(args):
     removed_pos = set()
 
     # get marker metadata
-    marker_metadata_file = args['marker_dir'] + '/' + clade_path(args['clade'], filebase = True) + '.positions.txt.gz'
-    marker_positions = read_marker_positions(marker_metadata_file)
+    # marker_metadata_file = args['marker_dir'] + '/' + clade_path(args['clade'], filebase = True) + '.positions.txt.gz'
+    # marker_positions = read_marker_positions(marker_metadata_file)
+    marker_positions = get_marker_positions(args['clade'], args['sqlitedb'])
 
     # 0 Remove Samples
     if args['input_select'] is not None:
-        keep_samples = [n for n in range(
-            0, len(samples)) if samples[n] in input_select]
+        keep_samples = [(n, sample) for n, sample in enumerate(samples) if sample in input_select]
         remove_n = len(samples) - len(keep_samples)
-        samples = [samples[n] for n in keep_samples]
+        keep_samples, samples = zip(*keep_samples)
         LOG.info('Keeping %s out of %s selected samples (cmd: `--input-select`). Removing: %s.' %
                  (len(keep_samples), len(input_select), remove_n))
         x = x[keep_samples, :, :]
+
+        # keep_samples = [n for n in range(
+        #     0, len(samples)) if samples[n] in input_select]
+        # remove_n = len(samples) - len(keep_samples)
+        # samples = [samples[n] for n in keep_samples]
+        # LOG.info('Keeping %s out of %s selected samples (cmd: `--input-select`). Removing: %s.' %
+        #          (len(keep_samples), len(input_select), remove_n))
+        # x = x[keep_samples, :, :]
 
     LOG.info('Filtering %s found in %s samples.' %
              (args['clade'], len(samples)))
