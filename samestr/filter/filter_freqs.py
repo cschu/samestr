@@ -44,7 +44,7 @@ def get_marker_positions(clade, db):
             "JOIN clade ON marker.clade_id = clade.id "
             "WHERE clade.name = ? "
             "ORDER BY marker.name",
-            clade
+            (clade,)
         )
 
         pos = 0
