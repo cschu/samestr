@@ -428,6 +428,12 @@ def read_params():
         metavar='DIR',
         type=str,
         help='Path to MetaPhlAn or mOTUs clade marker database.')
+    filter_general.add_argument(
+        "--sqlitedb",
+        required=True,
+        type=str,
+        help='Path to sqlite marker database.'
+    )
 
     # input
     filter_input = filter_parser.add_argument_group('Input arguments')
