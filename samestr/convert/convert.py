@@ -35,7 +35,8 @@ def initialise_contigs_db(clades, db):
     with sqlite3.connect(f"file:{db}?mode=ro", uri=True) as conn:  # source, sqlite3.connect(':memory:') as conn:
         #source.backup(conn)
         cursor = conn.execute(
-            f"SELECT clade.id, clade.name FROM clade WHERE clade.name IN ({query_placeholders})"
+            f"SELECT clade.id, clade.name FROM clade WHERE clade.name IN ({query_placeholders})",
+            clades
         )
         clades = {cid: cname for cid, cname in cursor}
 
