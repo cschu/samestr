@@ -39,21 +39,38 @@ def get_marker_positions(clade, db):
     with sqlite3.connect(f"file:{db}?mode=ro", uri=True) as source, sqlite3.connect(':memory:') as conn:
         source.backup(conn)
 
+        cursor = conn.execute("SELECT clade.id FROM clade WHERE clade.name = ?", (clade,))
+        try:
+            clade_id = next(cursor)[0]
+        except StopIteration:
+            raise ValueError(f"Invalid {clade_id=}.")
+        
         cursor = conn.execute(
-            "SELECT marker.name,marker.length FROM marker "
-            "JOIN clade ON marker.clade_id = clade.id "
-            "WHERE clade.name = ? "
+            "SELECT marker.* FROM marker WHERE marker.clade_id = ? "
             "ORDER BY marker.name",
-            (clade,)
+            (clade_id,)
         )
 
-        pos = 0
-        for marker, length in cursor:
-            start, end = pos, pos + length
-            marker_positions[marker] = start, end, length
-            pos = end
 
-    return marker_positions
+        # cursor = conn.execute(
+        #     "SELECT marker.* FROM clade "
+        #     "JOIN marker ON marker.clade_id = clade.id "
+        #     "WHERE clade.name = ? "
+        #     "ORDER BY marker.name",
+        #     (clade,)
+        # )
+
+        # pos = 0
+        # # for marker, length in cursor:
+        # for _, marker, start, end, length, _ in cursor:
+        #     start, end = pos, pos + length
+        #     marker_positions[marker] = start, end, length
+        #     pos = end
+
+        return {
+            marker: (start, end, length,)
+            for _, marker, start, end, length, _ in cursor
+        }
 
 
 def read_marker_list(marker_list_file):
