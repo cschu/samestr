@@ -39,8 +39,8 @@ def initialise_contigs_db(clades, db):
         cursor = conn.execute(
             "SELECT clade.name,marker.name,marker.length FROM clade "
             "JOIN marker ON marker.clade_id = clade.id "
-            f"WHERE clade.name IN ({query_placeholders}) "
-            "ORDER BY clade.name,marker.name ",
+            f"WHERE clade.name IN ({query_placeholders}) ",
+            # "ORDER BY clade.name,marker.name ",
             clades
         )
         # for clade, contig, length in cursor.fetchall():
