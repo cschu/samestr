@@ -36,8 +36,8 @@ def read_marker_positions(clade_marker_file):
 def get_marker_positions(clade, db):
     marker_positions = {}
 
-    with sqlite3.connect(f"file:{db}?mode=ro", uri=True) as source, sqlite3.connect(':memory:') as conn:
-        source.backup(conn)
+    with sqlite3.connect(f"file:{db}?mode=ro", uri=True) as conn:  # source, sqlite3.connect(':memory:') as conn:
+        # source.backup(conn)
 
         cursor = conn.execute("SELECT clade.id FROM clade WHERE clade.name = ?", (clade,))
         try:
@@ -78,11 +78,8 @@ def read_marker_list(marker_list_file):
 
     Returns: Set of marker names.
     """
-    marker_list = set()
     with open(marker_list_file) as f:
-        for l in f.readlines():
-            marker_list.add(l.strip())
-    return marker_list
+        return {l.strip() for l in f.readlines()}
 
 
 def trunc_marker_ends(marker_pos, trunc_len):
