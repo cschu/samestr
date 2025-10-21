@@ -37,7 +37,7 @@ def initialise_contigs_db(clades, db):
 
         cursor = conn.execute(
             # select * from marker join (select id,name from clade where name in ('t__EUK100861', 't__EUK100870', 't__EUK100951')) as sel_clade on marker.clade_id = sel_clade.id limit 10;
-            "SELECT clade.name, marker.name, marker.length "
+            "SELECT clade.name, marker.name, marker.start, marker.length "
             "FROM clade "
             "JOIN marker ON marker.clade_id = clade.id "
             f"WHERE clade.name IN ({query_placeholders})",
@@ -63,8 +63,8 @@ def initialise_contigs_db(clades, db):
         # )
         # # for clade, contig, length in cursor.fetchall():
         
-        for clade_name, contig, length in cursor:
-            contigs[contig] = clade_name, np.zeros([1, length, 4])
+        for clade_name, contig, start, length in cursor:
+            contigs[contig] = clade_name, start, np.zeros([1, length, 4])
     
 
     LOG.debug("contig_dict = %s" % str(list(contigs.items())[:1]))
@@ -99,7 +99,7 @@ def pileup(bam_stream, gene_file, min_bq, min_mq, min_depth, clades, db, outstre
             if contig is None:
                 LOG.debug(f"No entry for contig `{rname}`. Skipping.")
             else:
-                contig = contig[1]
+                contig = contig[2]
 
         if contig is None:
             continue
@@ -127,9 +127,9 @@ def pileup(bam_stream, gene_file, min_bq, min_mq, min_depth, clades, db, outstre
             
             p += oplen
 
-    for contig_name, (clade, contig) in contigs.items():
+    for contig_name, (clade, start, contig) in contigs.items():
         contig[contig < min_depth] = 0
-        yield clade, contig_name, contig
+        yield clade, start, contig
     # for c, positions in f_table.items():
     #     for pos, nucs in sorted(positions.items(), key=lambda x:x[0]):
     #         for nuc, counts in sorted(nucs.items(), key=lambda x:x[0]):
@@ -169,10 +169,12 @@ def process_genome(sample, genome, contig_pileups, output_dir):
 
     # Add alignment data
     beg, end = 0, 0
-    for contig in contig_pileups:
-        end += np.shape(contig)[1]
+    # for _, contig in sorted(contig_pileups, key=lambda x: x[0]):
+    for start, contig in contig_pileups:
+        # end += np.shape(contig)[1]
+        beg, end = start, np.shape(contig)[1]
         y[0, beg:end, :] = contig
-        beg = end
+        # beg = end
 
 
     # only write to numpy file if there is coverage left after convert criteria
@@ -199,13 +201,13 @@ def kp2np(kpileups, contig_map, sample, gene_file, output_dir):
 
     genome_contigs = []
     cur_genome = None
-    for genome, contig, pileups in kpileups:
+    for genome, start, pileups in kpileups:
         if genome != cur_genome:
             if genome_contigs:
                 process_genome(sample, cur_genome, genome_contigs, output_dir)
                 genome_contigs.clear()
             cur_genome = genome
-        genome_contigs.append(pileups)
+        genome_contigs.append((start, pileups))
     
     if genome_contigs:
         process_genome(sample, cur_genome, genome_contigs, output_dir)
