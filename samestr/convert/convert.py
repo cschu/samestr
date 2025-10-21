@@ -172,8 +172,8 @@ def process_genome(sample, genome, contig_pileups, genome_size, output_dir):
     beg, end = 0, 0
     # for _, contig in sorted(contig_pileups, key=lambda x: x[0]):
     for start, contig in contig_pileups:
-        # end += np.shape(contig)[1]
-        beg, end = start, np.shape(contig)[1]
+        end += np.shape(contig)[1]
+        beg = start
         y[0, beg:end, :] = contig
         # beg = end
 
