@@ -163,8 +163,9 @@ def read_contig_map(contig_map):
         yield cur_genome, contigs
         
 
-def process_genome(sample, genome, contig_pileups, output_dir):
-    n = sum(np.shape(c)[1] for c in contig_pileups)
+def process_genome(sample, genome, contig_pileups, genome_size, output_dir):
+    # n = sum(np.shape(c)[1] for c in contig_pileups)
+    n = genome_size
     y = np.zeros([1, n, 4])
 
     # Add alignment data
@@ -201,16 +202,19 @@ def kp2np(kpileups, contig_map, sample, gene_file, output_dir):
 
     genome_contigs = []
     cur_genome = None
+    genome_size = 0
     for genome, start, pileups in kpileups:
         if genome != cur_genome:
             if genome_contigs:
-                process_genome(sample, cur_genome, genome_contigs, output_dir)
+                process_genome(sample, cur_genome, genome_contigs, genome_size, output_dir)
                 genome_contigs.clear()
+                genome_size = 0
             cur_genome = genome
         genome_contigs.append((start, pileups))
+        genome_size += pileups.shape[1]
     
     if genome_contigs:
-        process_genome(sample, cur_genome, genome_contigs, output_dir)
+        process_genome(sample, cur_genome, genome_contigs, genome_size, output_dir)
 
 
 
