@@ -36,8 +36,8 @@ def read_marker_positions(clade_marker_file):
 def get_marker_positions(clade, db):
     marker_positions = {}
 
-    with sqlite3.connect(f"file:{db}?mode=ro", uri=True) as conn:  # source, sqlite3.connect(':memory:') as conn:
-        # source.backup(conn)
+    with sqlite3.connect(f"file:{db}?mode=ro", uri=True) as source, sqlite3.connect(':memory:') as conn:
+        source.backup(conn)
 
         # cursor = conn.execute("SELECT clade.id FROM clade WHERE clade.name = ?", (clade,))
         # try:
