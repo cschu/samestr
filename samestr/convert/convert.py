@@ -39,7 +39,7 @@ def initialise_contigs_db(clades, db):
             # select * from marker join (select id,name from clade where name in ('t__EUK100861', 't__EUK100870', 't__EUK100951')) as sel_clade on marker.clade_id = sel_clade.id limit 10;
             "SELECT clade.name, marker.name, marker.length "
             "FROM clade "
-            "JOIN marker ON marker.clade_id = clade.id"
+            "JOIN marker ON marker.clade_id = clade.id "
             f"WHERE clade.name IN ({query_placeholders})",
             clades
         )
