@@ -292,13 +292,13 @@ def samestr(input_args):
             LOG.info('Filtering files: %s', len(freqs))
 
             # Run: filter
-            cmd_args = parallelize_async(filter_freqs, cmd_args, input_args['nprocs'])
+            cmd_args = parallelize_async(filter_freqs, cmd_args, input_args['nprocs'] if len(cmd_args) > 1 else 1)
 
         elif input_args['command'] == 'stats':
             LOG.info('Gathering statistics: %s', len(freqs))
 
             # Run: stats
-            cmd_args = parallelize_async(aln2stats, cmd_args, input_args['nprocs'])
+            cmd_args = parallelize_async(aln2stats, cmd_args, input_args['nprocs'] if len(cmd_args) > 1 else 1)
 
         elif input_args['command'] == 'compare':
             LOG.info('Comparing alignments: %s', len(freqs))
