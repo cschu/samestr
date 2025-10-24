@@ -38,12 +38,12 @@ def aln2stats(args):
     x = load_numpy_file(args['input_file'])
     np.seterr(divide='ignore', invalid='ignore')
 
-    # get dominant variants
-    d = consensus(x)
+    # # get dominant variants
+    # d = consensus(x)
 
     if args['dominant_variants']:
         # analyze only dominant variants
-        x = d
+        x = consensus(x)
 
     # suppress np warnings All-NaN Slice and Mean of empty slice
     with warnings.catch_warnings():
@@ -95,7 +95,9 @@ def aln2stats(args):
 
         # stats: vertical coverage of dominant variants
         # at all sites
-        dom_cov = coverage(d)
+        # get dominant variants
+        x = consensus(x)
+        dom_cov = coverage(x)
         dom_cov[dom_cov == 0] = np.nan
         f_dom_cov = dom_cov / cov
         mean_dom_cov = np.nanmean(dom_cov, axis=1)
@@ -116,8 +118,8 @@ def aln2stats(args):
         mean_cov_polysites = np.nanmean(cov, axis=1)
 
     del x
-    if not args['dominant_variants']:
-        del d
+    # if not args['dominant_variants']:
+    #     del d
 
     # convert to pandas df
     df = pd.DataFrame(data=[
