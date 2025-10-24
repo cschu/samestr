@@ -38,18 +38,6 @@ def aln2stats(args):
     x = load_numpy_file(args['input_file'])
     np.seterr(divide='ignore', invalid='ignore')
 
-    # conversion arrays
-    acgt = '-NACGT'
-    n_freq = [
-        [0, 0, 0, 0],  # -
-        [0, 0, 0, 0],  # N
-        [1, 0, 0, 0],  # A
-        [0, 1, 0, 0],  # C
-        [0, 0, 1, 0],  # G
-        [0, 0, 0, 1]  # T
-    ]
-    null_array = np.array([0, 0, 0, 0])
-
     # get dominant variants
     d = consensus(x)
 
@@ -75,12 +63,13 @@ def aln2stats(args):
         n_covered = n_sites - n_gaps
 
         # stats: n of variant sites, monomorphic, .., polymorphic
-        p_mono = ((x > 0).sum(axis=2) == 1)
+        non_zero = (x > 0).sum(axis=2)
+        p_mono = (non_zero == 1)
         n_mono = p_mono.sum(axis=1)
-        n_duo = ((x > 0).sum(axis=2) == 2).sum(axis=1)
-        n_tri = ((x > 0).sum(axis=2) == 3).sum(axis=1)
-        n_quat = ((x > 0).sum(axis=2) == 4).sum(axis=1)
-        n_poly = ((x > 0).sum(axis=2) > 1).sum(axis=1)
+        n_duo = (non_zero == 2).sum(axis=1)
+        n_tri = (non_zero == 3).sum(axis=1)
+        n_quat = (non_zero == 4).sum(axis=1)
+        n_poly = (non_zero > 1).sum(axis=1)
 
         # polymorphic sites as per binomial cum. dist. func.
         illumina_error_rate = 0.3 / 100  # Q25+
@@ -125,6 +114,10 @@ def aln2stats(args):
         p_mono = np.where(np.isnan(dom_cov))
         cov[p_mono] = np.nan
         mean_cov_polysites = np.nanmean(cov, axis=1)
+
+    del x
+    if not args['dominant_variants']:
+        del d
 
     # convert to pandas df
     df = pd.DataFrame(data=[
