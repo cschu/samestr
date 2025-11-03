@@ -381,8 +381,7 @@ def filter_freqs(args):
         assert len(remaining_pos) == x.shape[1], "The number of remaining positions does not match the modified array shape."
 
         with open(output_name + '.pos.txt', 'w') as ofn:
-            txt = '\n'.join([str(pos) for pos in remaining_pos])
-            ofn.write(txt)
+            print(*remaining_pos, sep="\n", file=ofn)
 
     LOG.info('Remaining positions: %s.' % x.shape[1])
 
@@ -398,11 +397,10 @@ def filter_freqs(args):
     if not clade_min_samples(args, x.shape[0]):
         return None
 
-    # Save retained samples to file
-    samples_file =os.path.join(args['output_dir'], basename(args['input_name']))
-    with open(samples_file, 'w') as file:
-        txt = '\n'.join(samples)
-        file.write(txt)
-
     # Save Array to file
     np.savez_compressed(output_name, x, allow_pickle=True)
+
+    # Save retained samples to file
+    samples_file = os.path.join(args['output_dir'], basename(args['input_name']))
+    with open(samples_file, 'w') as _out:
+        print(*samples, sep="\n", file=_out)
