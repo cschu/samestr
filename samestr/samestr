@@ -111,7 +111,7 @@ def samestr(input_args):
         elif input_args['command'] == 'convert':
             convert_main(input_args)
         elif input_args['command'] == 'merge':
-            merge_main(input_args)
+            merge_main(input_args, input_clade)
         else:
             cmd_args, freqs = manage_clade_input(input_args, input_clade)
 
