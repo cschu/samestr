@@ -39,8 +39,6 @@ from samestr.utils.file_mapping import (
 from samestr.utils.ooSubprocess import parallelize_async, serialize
 from samestr.utils.parse_args import read_params
 from samestr.utils.utilities import (
-	list_group_by_basename,
-	load_samestr_db_manifest,
 	read_json,
 	write_json,
 )
