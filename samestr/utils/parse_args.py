@@ -70,13 +70,13 @@ def read_params():
         help='Make database from MetaPhlAn or mOTUs markers.')
 
     # integrity check
-    db_intergrity = db_parser.add_argument_group('Database check arguments')
-    db_intergrity.add_argument(
+    db_integrity = db_parser.add_argument_group('Database check arguments')
+    db_integrity.add_argument(
         '--db-check',
         action='store_true',
         help='Performs just a database integrity check, if an existing SameStr database is provided. All other options will be ignored.'
     ) 
-    db_intergrity.add_argument(
+    db_integrity.add_argument(
         '--marker-dir',
         required=False,
         metavar='DIR',
