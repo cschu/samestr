@@ -49,7 +49,10 @@ def load_samestr_db_manifest(db_path, samestr_cmd):
 
 
 def load_db(input_args, samestr_cmd):
-    ss_db = load_samestr_db_manifest(input_args['marker_dir'], samestr_cmd)
+    ss_db = load_samestr_db_manifest(
+        input_args['marker_dir'],
+        samestr_cmd
+    )
 
     if ss_db['db_existed']:
         db_manifest = ss_db['db_manifest']
@@ -72,5 +75,7 @@ def load_db(input_args, samestr_cmd):
                 input_args['output_dir']
             )
         exit(1)
+
+    return ss_db
 
     
