@@ -51,6 +51,7 @@ environ['PATH'] += ':' + UTILS_DIR + ':' + CONVERT_DIR
 
 def samestr(input_args):
     """Main function for SAMESTR."""
+    LOG = logging.getLogger(__name__)
     
     ## Log command     
     samestr_cmd = {
@@ -73,7 +74,6 @@ def samestr(input_args):
     if input_args['command'] == 'summarize':
         cmd_args = serialize(summarize, [input_args])
     else:
-        accepted_extensions = ACCEPTED_EXTENSIONS[input_args['command']]
 
         if input_args['command'] == 'merge':
             if not input_args['input_dir'] and not input_args['input_files']:
@@ -86,7 +86,9 @@ def samestr(input_args):
                     raise ValueError(f"Cannot find any .npz files in {args['input_dir']}.")
 
         input_args['input_extension'] = get_uniform_extension(
-            input_args['input_files'], accepted_extensions)
+            input_args['input_files'],
+            ACCEPTED_EXTENSIONS[input_args['command']],
+        )
 
         # Count input files
         file_count = len(input_args['input_files'])
@@ -142,6 +144,5 @@ if __name__ == "__main__":
     stream=stderr,
     format='%(asctime)s | %(levelname)s | %(name)s | %(funcName)s | %(lineno)d | %(message)s'
     )
-    LOG = logging.getLogger(__name__)
 
     samestr(args)
