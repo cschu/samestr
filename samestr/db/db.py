@@ -6,9 +6,7 @@ from samestr.db.load_db import load_db
 from samestr.utils.file_mapping import get_uniform_extension
 
 
-accepted_extensions = ['.fasta', '.fa', '.fna', '.fasta.bz2', '.fa.bz2', '.fna.bz2']
-
-def db_main(input_args, samestr_cmd):
+def db_main(input_args, samestr_cmd, db_extensions):
 	check_args(input_args)
 	
 	load_db(input_args, samestr_cmd)
@@ -19,7 +17,7 @@ def db_main(input_args, samestr_cmd):
 
 	input_args['input_extension'] = get_uniform_extension(
 		[input_args['markers_fasta']],
-		accepted_extensions,
+		db_extensions,
 	)
 
 	output_dir = pathlib.Path(input_args['output_dir']) / "db_markers"

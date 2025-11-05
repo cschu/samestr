@@ -46,7 +46,7 @@ from samestr.utils.utilities import (
 
 ## Check input file extensions
 ACCEPTED_EXTENSIONS = {
-    # 'db': ['.fasta', '.fa', '.fna', '.fasta.bz2', '.fa.bz2', '.fna.bz2'],
+    'db': ['.fasta', '.fa', '.fna', '.fasta.bz2', '.fa.bz2', '.fna.bz2'],
     'convert': ['.sam', '.sam.bz2', '.bam'],
     'extract': ['.fasta', '.fa', '.fna', '.fasta.gz', '.fa.gz', '.fna.gz'],
     'merge': ['.npy', '.npy.gz', '.npz'],
@@ -74,7 +74,7 @@ def samestr(input_args):
 
     ## Get database manifest files
     if input_args['command'] == 'db':
-        db_main(input_args, samestr_cmd)
+        db_main(input_args, samestr_cmd, ACCEPTED_EXTENSIONS['db'])
         exit(0)
     
     input_args['samestr_db'] = load_db(input_args, samestr_cmd)
