@@ -7,7 +7,6 @@ import pandas as pd
 
 from samestr.db import generate_db
 from samestr.db.db_checks import check_args, check_db_integrity
-from samestr.db.load_db import load_db
 from samestr.utils.file_mapping import get_uniform_extension
 from samestr.utils.utilities import read_json, read_tsv
 
@@ -21,28 +20,43 @@ def load_samestr_db_manifest(db_path, samestr_cmd):
     - db_clades.json
     - db_taxonomy.tsv
     """
+    db_path = pathlib.Path(db_path)
 
-    db_manifest_fn = db_path + '/' + 'db_manifest.json'
-    db_clades_fn = db_path + '/' + 'db_clades.json'
-    db_taxonomy_fn = db_path + '/' + 'db_taxonomy.tsv'
+    db_manifest_fn = db_path / 'db_manifest.json'
+    db_clades_fn = db_path / 'db_clades.json'
+    db_taxonomy_fn = db_path / 'db_taxonomy.tsv'
 
-    if isfile(db_manifest_fn):
-        db_existed = True
+    db_existed = db_manifest_fn.is_file()
+
+    if db_existed:
         db_manifest = read_json(db_manifest_fn)
         db_clades = read_json(db_clades_fn)
-        db_taxonomy = {'fpath': db_taxonomy_fn,
-                       'records': read_tsv(db_taxonomy_fn)}
+        db_taxonomy = {
+            'fpath': db_taxonomy_fn,
+            'records': read_tsv(db_taxonomy_fn)
+        }
     else:
-        db_existed = False
-        db_manifest = {'fpath': db_manifest_fn,
-                       'database':{},
-                       'records':{'total_n_files':0, 'total_n_clades':0, 'total_n_markers': 0, 'total_n_positions': 0}}
-        db_clades = {'fpath': db_clades_fn,
-                     'records':{}}
-        db_taxonomy = {'fpath': db_taxonomy_fn,
-                       'records': pd.DataFrame(columns=['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species', 'clade']) }
+        db_manifest = {
+            'fpath': db_manifest_fn,
+            'database': {},
+            'records': {
+                'total_n_files': 0,
+                'total_n_clades': 0,
+                'total_n_markers': 0,
+                'total_n_positions': 0,
+            }
+        }
+        db_clades = {
+            'fpath': db_clades_fn,
+            'records': {}
+        }
+        db_taxonomy = {
+            'fpath': db_taxonomy_fn,
+            'records': pd.DataFrame(
+                columns=['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species', 'clade']
+            )
+        }
         
-    # manifest existed, manifest
     return {
         "db_existed": db_existed,
         "db_manifest": db_manifest,
@@ -50,7 +64,6 @@ def load_samestr_db_manifest(db_path, samestr_cmd):
         "db_taxonomy": db_taxonomy,
         "samestr_cmd": samestr_cmd,
     }
-
 
 
 def load_db(input_args, samestr_cmd):
@@ -85,21 +98,21 @@ def load_db(input_args, samestr_cmd):
 
 
 def db_main(input_args, samestr_cmd, db_extensions):
-	check_args(input_args)
-	
-	load_db(input_args, samestr_cmd)
+    check_args(input_args)
 
-	#### check db integrity if requested and db existed
-	if input_args.get("db_check"):
-		check_db_integrity(input_args)
+    load_db(input_args, samestr_cmd)
 
-	input_args['input_extension'] = get_uniform_extension(
-		[input_args['markers_fasta']],
-		db_extensions,
-	)
+    #### check db integrity if requested and db existed
+    if input_args.get("db_check"):
+        check_db_integrity(input_args)
 
-	output_dir = pathlib.Path(input_args['output_dir']) / "db_markers"
-	output_dir.mkdir(exist_ok=True, parents=True,)
+    input_args['input_extension'] = get_uniform_extension(
+        [input_args['markers_fasta']],
+        db_extensions,
+    )
+
+    output_dir = pathlib.Path(input_args['output_dir']) / "db_markers"
+    output_dir.mkdir(exist_ok=True, parents=True,)
 
     # expand and generate db from markers/info files
-	generate_db(input_args)
+    generate_db(input_args)
