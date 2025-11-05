@@ -97,8 +97,7 @@ def samestr(input_args):
                 args['input_files'] = glob.glob(os.path.join(args['input_dir'], "*", "*.npz"), recursive=True,)
                 if not args['input_files']:
                     raise ValueError(f"Cannot find any .npz files in {args['input_dir']}.")
-        
-                
+
         input_args['input_extension'] = get_uniform_extension(
             input_args['input_files'], accepted_extensions)
 
