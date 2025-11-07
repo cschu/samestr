@@ -5,6 +5,7 @@ import glob
 import logging
 import os
 import pathlib
+import sys
 
 from datetime import datetime
 from os.path import dirname, realpath, isfile
@@ -52,8 +53,8 @@ environ['PATH'] += ':' + UTILS_DIR + ':' + CONVERT_DIR
 def samestr(input_args):
     """Main function for SAMESTR."""
     LOG = logging.getLogger(__name__)
-    
-    ## Log command     
+
+    ## Log command
     samestr_cmd = {
         'version': f'{__version__}',
         'command': ' '.join(argv),
@@ -63,8 +64,8 @@ def samestr(input_args):
     ## Get database manifest files
     if input_args['command'] == 'db':
         db_main(input_args, samestr_cmd, ACCEPTED_EXTENSIONS['db'])
-        exit(0)
-    
+        sys.exit(0)
+
     input_args['samestr_db'] = load_db(input_args, samestr_cmd)
 
     pathlib.Path(input_args['output_dir']).mkdir(exist_ok=True, parents=True)
@@ -78,12 +79,15 @@ def samestr(input_args):
         if input_args['command'] == 'merge':
             if not input_args['input_dir'] and not input_args['input_files']:
                 raise ValueError("Neither --input-files not --input-dir are set.")
-            elif input_args['input_files'] and input_args['input_dir']:
-                raise ValueError("--input-files and --input-dir cannot be used simultaneously.")            
-            elif args['input_dir']:
-                args['input_files'] = glob.glob(os.path.join(args['input_dir'], "*", "*.npz"), recursive=True,)
-                if not args['input_files']:
-                    raise ValueError(f"Cannot find any .npz files in {args['input_dir']}.")
+            if input_args['input_files'] and input_args['input_dir']:
+                raise ValueError("--input-files and --input-dir cannot be used simultaneously.")
+            if input_args['input_dir']:
+                input_args['input_files'] = glob.glob(
+                    os.path.join(input_args['input_dir'], "*", "*.npz"),
+                    recursive=True,
+                )
+                if not input_args['input_files']:
+                    raise ValueError(f"Cannot find any .npz files in {input_args['input_dir']}.")
 
         input_args['input_extension'] = get_uniform_extension(
             input_args['input_files'],
@@ -114,17 +118,17 @@ def samestr(input_args):
             elif input_args['command'] == 'compare':
                 LOG.info('Comparing alignments: %s', len(freqs))
                 cmd_args = parallelize_async(compare, cmd_args, input_args['nprocs'])
-    
+
     # write current command to logfile
     samestr_cmd['date-end'] = '%s' % datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logfile_fn = os.path.join(input_args['output_dir'], 'command_log.json')
     if isfile(logfile_fn):
         logfile = read_json(logfile_fn)
-        iter = max([int(k) for k in logfile.keys()]) + 1
+        log_version = max(int(k) for k in logfile) + 1
     else:
         logfile = {}
-        iter = 1
-    logfile[iter] = samestr_cmd
+        log_version = 1
+    logfile[log_version] = samestr_cmd
     write_json(logfile_fn, logfile)
     LOG.info('Done.')
 
@@ -134,7 +138,7 @@ if __name__ == "__main__":
 
     if args['citation'] is not None:
         print(citations[args['citation']])
-        exit(0)
+        sys.exit(0)
 
     if args.get('random_seed') is not None:
         np.random.seed(args['random_seed'])
