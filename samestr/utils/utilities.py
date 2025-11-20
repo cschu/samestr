@@ -186,34 +186,3 @@ def read_tsv(file_path):
 
 def write_tsv(file_path, df):
     df.to_csv(file_path, sep='\t', index=False)
-
-def load_samestr_db_manifest(db_path):
-    """
-    read the samestr database files:
-    - db_manifest.json
-    - db_clades.json
-    - db_taxonomy.tsv
-    """
-
-    db_manifest_fn = db_path + '/' + 'db_manifest.json'
-    db_clades_fn = db_path + '/' + 'db_clades.json'
-    db_taxonomy_fn = db_path + '/' + 'db_taxonomy.tsv'
-
-    if isfile(db_manifest_fn):
-        db_existed = True
-        db_manifest = read_json(db_manifest_fn)
-        db_clades = read_json(db_clades_fn)
-        db_taxonomy = {'fpath': db_taxonomy_fn,
-                       'records': read_tsv(db_taxonomy_fn)}
-    else:
-        db_existed = False
-        db_manifest = {'fpath': db_manifest_fn,
-                       'database':{},
-                       'records':{'total_n_files':0, 'total_n_clades':0, 'total_n_markers': 0, 'total_n_positions': 0}}
-        db_clades = {'fpath': db_clades_fn,
-                     'records':{}}
-        db_taxonomy = {'fpath': db_taxonomy_fn,
-                       'records': pd.DataFrame(columns=['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species', 'clade']) }
-        
-    # manifest existed, manifest
-    return db_existed, db_manifest, db_clades, db_taxonomy
