@@ -70,7 +70,7 @@ def samestr(input_args):
 
     pathlib.Path(input_args['output_dir']).mkdir(exist_ok=True, parents=True)
 
-    input_clade = input_args.get("species")
+    input_clade = input_args.get("clade")
 
     if input_args['command'] == 'summarize':
         cmd_args = serialize(summarize, [input_args])
@@ -80,15 +80,12 @@ def samestr(input_args):
             if not input_args['input_dir'] and not input_args['input_files']:
                 raise ValueError("Neither --input-files not --input-dir are set.")
             if input_args['input_files'] and input_args['input_dir']:
-                raise ValueError("--input-files and --input-dir cannot be used simultaneously.")
-            if input_args['input_dir']:
-                input_args['input_files'] = glob.glob(
-                    os.path.join(input_args['input_dir'], "*", "*.npz"),
-                    recursive=True,
-                )
-                if not input_args['input_files']:
-                    raise ValueError(f"Cannot find any .npz files in {input_args['input_dir']}.")
-
+                raise ValueError("--input-files and --input-dir cannot be used simultaneously.")            
+            if args['input_dir']:
+                args['input_files'] = glob.glob(os.path.join(args['input_dir'], "**", "*.npz"), recursive=True,)
+                if not args['input_files']:
+                    raise ValueError(f"Cannot find any .npz files in {args['input_dir']}.")
+                
         input_args['input_extension'] = get_uniform_extension(
             input_args['input_files'],
             ACCEPTED_EXTENSIONS[input_args['command']],
